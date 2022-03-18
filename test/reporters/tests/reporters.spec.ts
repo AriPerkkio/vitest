@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync } from 'fs'
+import { existsSync, readFileSync, rmSync, rmdirSync } from 'fs'
 import { afterEach, expect, test, vi } from 'vitest'
 import { resolve } from 'pathe'
 import { JsonReporter } from '../../../packages/vitest/src/node/reporters/json'
@@ -84,6 +84,34 @@ test('JUnit reporter with outputFile', async() => {
   rmSync(outputFile)
 })
 
+test('JUnit reporter with outputFile in non-existing directory', async() => {
+  const rootDirectory = resolve('reportDirectory')
+  const outputFile = `${rootDirectory}/junit/report.xml`
+
+  // Arrange
+  const reporter = new JUnitReporter()
+  const context = getContext()
+  context.vitest.config.outputFile = outputFile
+
+  vi.mock('os', () => ({
+    hostname: () => 'hostname',
+  }))
+
+  vi.setSystemTime(1642587001759)
+
+  // Act
+  await reporter.onInit(context.vitest)
+  await reporter.onFinished(files)
+
+  // Assert
+  expect(context.output).toMatchSnapshot()
+  expect(existsSync(outputFile)).toBe(true)
+  expect(readFileSync(outputFile, 'utf8')).toMatchSnapshot()
+
+  // Cleanup
+  rmdirSync(rootDirectory, { recursive: true })
+})
+
 test('json reporter', async() => {
   // Arrange
   const reporter = new JsonReporter()
@@ -120,4 +148,28 @@ test('json reporter with outputFile', async() => {
 
   // Cleanup
   rmSync(outputFile)
+})
+
+test('json reporter with outputFile in non-existing directory', async() => {
+  const rootDirectory = resolve('reportDirectory')
+  const outputFile = `${rootDirectory}/json/report.json`
+
+  // Arrange
+  const reporter = new JsonReporter()
+  const context = getContext()
+  context.vitest.config.outputFile = outputFile
+
+  vi.setSystemTime(1642587001759)
+
+  // Act
+  reporter.onInit(context.vitest)
+  await reporter.onFinished(files)
+
+  // Assert
+  expect(context.output).toMatchSnapshot()
+  expect(existsSync(outputFile)).toBe(true)
+  expect(readFileSync(outputFile, 'utf8')).toMatchSnapshot()
+
+  // Cleanup
+  rmdirSync(rootDirectory, { recursive: true })
 })
