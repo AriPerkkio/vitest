@@ -1,9 +1,10 @@
 name: CI
 
 on:
+#  TODO
   push:
-    branches:
-      - main
+#    branches:
+#      - main
 
   pull_request:
     branches:
