@@ -14,6 +14,10 @@ import { defineConfig } from 'rollup'
 
 import pkg from './package.json'
 
+// export NODE_OPTIONS="--max-old-space-size=8192"
+// eslint-disable-next-line no-console
+console.log('NODE_OPTIONS', process.env.NODE_OPTIONS)
+
 const entries = [
   'src/index.ts',
   'src/browser.ts',
