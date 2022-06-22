@@ -1,10 +1,11 @@
 name: CI
 
 on:
+  #  TODO
   push:
-    branches:
-      - main
-
+  #    branches:
+  #      - main
+  workflow_dispatch:
   pull_request:
     branches:
       - main
