@@ -9,7 +9,9 @@ import { ViteNodeServer } from 'vite-node/server'
 import type { ArgumentsType, Reporter, ResolvedConfig, UserConfig } from '../types'
 import { SnapshotManager } from '../integrations/snapshot/manager'
 import { clearTimeout, deepMerge, hasFailed, noop, setTimeout, slash } from '../utils'
-import { cleanCoverage, reportCoverage } from '../integrations/coverage'
+import type { BaseCoverageReporter } from '../integrations/coverage/base'
+import { C8Reporter } from '../integrations/coverage/c8'
+import { IstanbulReporter } from '../integrations/coverage/istanbul'
 import { createPool } from './pool'
 import type { WorkerPool } from './pool'
 import { createReporters } from './reporters/utils'
@@ -31,6 +33,7 @@ export class Vitest {
   snapshot: SnapshotManager = undefined!
   cache: VitestCache = undefined!
   reporters: Reporter[] = undefined!
+  coverageReporter: BaseCoverageReporter = undefined!
   logger: Logger
   pool: WorkerPool | undefined
 
@@ -50,6 +53,10 @@ export class Vitest {
   }
 
   private _onRestartListeners: Array<() => void> = []
+
+  initialize(options: UserConfig) {
+    this.coverageReporter = options.coverage?.provider === 'istanbul' ? new IstanbulReporter() : new C8Reporter()
+  }
 
   async setServer(options: UserConfig, server: ViteDevServer) {
     this.unregisterWatcher?.()
@@ -84,12 +91,16 @@ export class Vitest {
 
     this.reporters = await createReporters(resolved.reporters, this.runner)
 
+    // TODO, would be better here
+    // this.coverageReporter = resolved.coverage.provider === 'istanbul' ? new IstanbulReporter() : new C8Reporter()
+    this.config.coverage = this.coverageReporter.resolveOptions()
+
     this.runningPromise = undefined
 
     this._onRestartListeners.forEach(fn => fn())
 
-    if (resolved.coverage.enabled)
-      await cleanCoverage(resolved.coverage, resolved.coverage.clean)
+    if (this.config.coverage.enabled)
+      await this.coverageReporter.clean()
 
     this.cache.results.setConfig(resolved.root, resolved.cache)
     try {
@@ -120,6 +131,7 @@ export class Vitest {
 
   async start(filters?: string[]) {
     await this.report('onInit', this)
+    await this.coverageReporter.initialize(this)
 
     const files = await this.filterTestsBySource(
       await this.globTestFiles(filters),
@@ -139,7 +151,7 @@ export class Vitest {
     await this.runFiles(files)
 
     if (this.config.coverage.enabled)
-      await reportCoverage(this)
+      await this.coverageReporter.report()
 
     if (this.config.watch)
       await this.report('onWatcherStart')
@@ -320,14 +332,14 @@ export class Vitest {
       this.changedTests.clear()
 
       if (this.config.coverage.enabled && this.config.coverage.cleanOnRerun)
-        await cleanCoverage(this.config.coverage)
+        await this.coverageReporter.clean()
 
       await this.report('onWatcherRerun', files, triggerId)
 
       await this.runFiles(files)
 
       if (this.config.coverage.enabled)
-        await reportCoverage(this)
+        await this.coverageReporter.report()
 
       await this.report('onWatcherStart')
     }, WATCHER_DEBOUNCE)

@@ -26,14 +26,26 @@ export async function startVitest(cliFilters: string[], options: CliOptions, vit
   }
 
   if (typeof options.coverage === 'boolean')
+    // @ts-expect-error -- TODO - check why exactly was this working before... :/
     options.coverage = { enabled: options.coverage }
 
   const ctx = await createVitest(options, viteOverrides)
 
   if (ctx.config.coverage.enabled) {
-    if (!await ensurePackageInstalled('c8')) {
-      process.exitCode = 1
-      return false
+    const requiredPackages = ctx.config.coverage.provider === 'istanbul'
+      ? [
+          'istanbul-lib-coverage',
+          'istanbul-lib-instrument',
+          'istanbul-lib-report',
+          'istanbul-reports',
+        ]
+      : ['c8']
+
+    for (const pkg of requiredPackages) {
+      if (!await ensurePackageInstalled(pkg)) {
+        process.exitCode = 1
+        return false
+      }
     }
   }
 

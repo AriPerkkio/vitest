@@ -3,7 +3,6 @@ import type { File, HookCleanupCallback, HookListener, ResolvedConfig, Suite, Su
 import { vi } from '../integrations/vi'
 import { getSnapshotClient } from '../integrations/snapshot/chai'
 import { clearTimeout, getFullName, getWorkerState, hasFailed, hasTests, partitionSuiteChildren, setTimeout, shuffle } from '../utils'
-import { takeCoverage } from '../integrations/coverage'
 import { getState, setState } from '../integrations/chai/jest-expect'
 import { GLOBAL_EXPECT } from '../integrations/chai/constants'
 import { getFn, getHooks } from './map'
@@ -288,7 +287,7 @@ export async function startTests(paths: string[], config: ResolvedConfig) {
 
   await runFiles(files, config)
 
-  takeCoverage()
+  // TODO: Why was v8.takeCoverage() called here?
 
   await getSnapshotClient().saveCurrent()
 
