@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-imports */
-import { existsSync, promises as fs } from 'fs'
+import { existsSync, promises as fs, writeFileSync } from 'fs'
 import { relative, resolve } from 'pathe'
 import type { TransformPluginContext } from 'rollup'
 import type { AfterSuiteRunMeta, CoverageIstanbulOptions, CoverageProvider, ResolvedCoverageOptions, Vitest } from 'vitest'
@@ -8,6 +8,7 @@ import libReport from 'istanbul-lib-report'
 import reports from 'istanbul-reports'
 import type { CoverageMap } from 'istanbul-lib-coverage'
 import libCoverage from 'istanbul-lib-coverage'
+import type { MapStore } from 'istanbul-lib-source-maps'
 import libSourceMaps from 'istanbul-lib-source-maps'
 import { type Instrumenter, createInstrumenter } from 'istanbul-lib-instrument'
 // @ts-expect-error missing types
@@ -36,6 +37,7 @@ export class IstanbulCoverageProvider implements CoverageProvider {
   options!: ResolvedCoverageOptions & CoverageIstanbulOptions & { provider: 'istanbul' }
   instrumenter!: Instrumenter
   testExclude!: InstanceType<TestExclude>
+  sourceMapStore!: MapStore
 
   /**
    * Coverage objects collected from workers.
@@ -48,6 +50,8 @@ export class IstanbulCoverageProvider implements CoverageProvider {
   initialize(ctx: Vitest) {
     this.ctx = ctx
     this.options = resolveIstanbulOptions(ctx.config.coverage, ctx.config.root)
+
+    this.sourceMapStore = libSourceMaps.createSourceMapStore()
 
     this.instrumenter = createInstrumenter({
       produceSourceMap: true,
@@ -78,11 +82,16 @@ export class IstanbulCoverageProvider implements CoverageProvider {
     if (!this.testExclude.shouldInstrument(id))
       return
 
+    writeFileSync('./sourceCode.js', sourceCode, 'utf8')
+
     const sourceMap = pluginCtx.getCombinedSourcemap()
     sourceMap.sources = sourceMap.sources.map(removeQueryParameters)
+    this.sourceMapStore.registerMap(id, sourceMap as any)
 
     const code = this.instrumenter.instrumentSync(sourceCode, id, sourceMap as any)
     const map = this.instrumenter.lastSourceMap() as any
+
+    writeFileSync('./instrumented.js', code, 'utf8')
 
     return { code, map }
   }
@@ -99,6 +108,8 @@ export class IstanbulCoverageProvider implements CoverageProvider {
   }
 
   async reportCoverage() {
+    fs.writeFile('coverageMap-original.json', JSON.stringify(this.coverages, null, 2), 'utf-8')
+
     const mergedCoverage: CoverageMap = this.coverages.reduce((coverage, previousCoverageMap) => {
       const map = libCoverage.createCoverageMap(coverage)
       map.merge(previousCoverageMap)
@@ -110,13 +121,14 @@ export class IstanbulCoverageProvider implements CoverageProvider {
 
     includeImplicitElseBranches(mergedCoverage)
 
-    const sourceMapStore = libSourceMaps.createSourceMapStore()
-    const coverageMap: CoverageMap = await sourceMapStore.transformCoverage(mergedCoverage)
+    const coverageMap: CoverageMap = await this.sourceMapStore.transformCoverage(mergedCoverage)
+
+    fs.writeFile('coverageMap.json', JSON.stringify(coverageMap, null, 2), 'utf-8')
 
     const context = libReport.createContext({
       dir: this.options.reportsDirectory,
       coverageMap,
-      sourceFinder: sourceMapStore.sourceFinder,
+      sourceFinder: this.sourceMapStore.sourceFinder,
       watermarks: this.options.watermarks,
     })
 
