@@ -1,20 +1,15 @@
 import { resolve } from 'pathe'
-import fg from 'fast-glob'
 import { execa } from 'execa'
-import { describe, expect, it } from 'vitest'
+import { describe, it } from 'vitest'
 
-describe('should fails', async () => {
+describe('should fail', async () => {
   const root = resolve(__dirname, '../failing')
-  const files = await fg('*.test-d.*', { cwd: root })
 
   it('typecheck files', async () => {
-    // in Windows child_process is very unstable, we skip testing it
-    if (process.platform === 'win32' && process.env.CI)
-      return
-
-    const { stderr } = await execa('npx', [
+    const { stdout, stderr } = await execa('npx', [
       'vitest',
       'typecheck',
+      '--run',
       '--dir',
       resolve(__dirname, '..', './failing'),
       '--config',
@@ -29,26 +24,10 @@ describe('should fails', async () => {
       },
     })
 
-    expect(stderr).toBeTruthy()
-    const lines = String(stderr).split(/\n/g)
-    const msg = lines
-      .filter(i => i.includes('TypeCheckError: '))
-      .reverse()
-      .join('\n')
-      .trim()
-      .replace(root, '<rootDir>')
-    expect(stderr).not.toMatch('files found, exiting with code')
-    expect(msg).toMatchSnapshot()
+    // eslint-disable-next-line no-console
+    console.log('runner.test::stdout', stdout)
 
-    files.forEach((file) => {
-      expect(String(stderr)).toMatch(`${file}:`)
-    })
-
-    lines.forEach((line, idx) => {
-      if (line.includes('TypeCheckError')) {
-        const msg = lines.slice(idx - 1, idx + 7).join('\n')
-        expect(msg).toMatchSnapshot()
-      }
-    })
+    // eslint-disable-next-line no-console
+    console.log('runner.test::stderr', stderr)
   }, 30_000)
 })

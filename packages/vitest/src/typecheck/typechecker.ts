@@ -209,6 +209,8 @@ export class Typechecker {
     await this.ensurePackageInstalled(root, typecheck.checker)
 
     const { config, path } = await getTsconfig(root, typecheck)
+    // eslint-disable-next-line no-console
+    console.log('typechecker::prepare', { config, path })
 
     this.tempConfigPath = path
     this.allowJs = typecheck.allowJs || config.allowJs || false
@@ -227,6 +229,10 @@ export class Typechecker {
     if (typecheck.allowJs)
       args.push('--allowJs', '--checkJs')
     let output = ''
+
+    // eslint-disable-next-line no-console
+    console.log('typechecker::start', { 'typecheck.checker': typecheck.checker, args, root })
+
     const child = execa(typecheck.checker, args, {
       cwd: root,
       stdout: 'pipe',
