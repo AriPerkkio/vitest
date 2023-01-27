@@ -1,7 +1,7 @@
 import { existsSync, promises as fs } from 'fs'
 import _url from 'url'
 import type { Profiler } from 'inspector'
-import { takeCoverage } from 'v8'
+import { stopCoverage, takeCoverage } from 'v8'
 import { extname, resolve } from 'pathe'
 import c from 'picocolors'
 import { provider } from 'std-env'
@@ -53,6 +53,10 @@ export class C8CoverageProvider implements CoverageProvider {
 
   async reportCoverage({ allTestsRun }: ReportContext = {}) {
     takeCoverage()
+
+    // V8 coverage collection won't stop unless environment variable is also removed
+    stopCoverage()
+    delete process.env.NODE_V8_COVERAGE
 
     if (provider === 'stackblitz')
       this.ctx.logger.log(c.blue(' % ') + c.yellow('@vitest/coverage-c8 does not work on Stackblitz. Report will be empty.'))
@@ -154,9 +158,6 @@ export class C8CoverageProvider implements CoverageProvider {
     await report.run()
     await checkCoverages(options, report)
 
-    // Note that this will only clean up the V8 reports generated so far.
-    // There will still be a temp directory with some reports when vitest exists,
-    // but at least it will only contain reports of vitest's internal functions.
     if (existsSync(this.options.tempDirectory))
       await fs.rm(this.options.tempDirectory, { recursive: true, force: true, maxRetries: 10 })
   }
