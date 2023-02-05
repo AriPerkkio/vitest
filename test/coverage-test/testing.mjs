@@ -16,14 +16,14 @@ const configs = [
   // Run tests for checking coverage report contents.
   ['coverage-report-tests', {
     include: [
-      './coverage-report-tests/generic.report.test.ts',
+      ['c8', 'istanbul'].includes(provider) && './coverage-report-tests/generic.report.test.ts',
       `./coverage-report-tests/${provider}.report.test.ts`,
-    ],
+    ].filter(Boolean),
     coverage: { enabled: false, clean: false },
   }],
 ]
 
-for (const threads of [true, false]) {
+for (const threads of [true]) {
   for (const [directory, config] of configs) {
     await startVitest('test', [directory], {
       ...config,

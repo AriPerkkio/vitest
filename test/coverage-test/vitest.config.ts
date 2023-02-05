@@ -2,6 +2,8 @@ import { resolve } from 'pathe'
 import { defineConfig } from 'vitest/config'
 import vue from '@vitejs/plugin-vue'
 
+import CustomCoverageProviderModule from './custom-coverage-provider'
+
 const provider = process.argv[1 + process.argv.indexOf('--provider')]
 
 export default defineConfig({
@@ -14,7 +16,7 @@ export default defineConfig({
   test: {
     watch: false,
     coverage: {
-      provider: provider as any,
+      provider: provider === 'custom' ? new CustomCoverageProviderModule() : provider as any,
       include: ['src/**'],
       clean: true,
       all: true,
