@@ -53,12 +53,14 @@ export type CoverageReporter =
   | 'text-summary'
   | 'text'
 
-type Provider = 'c8' | 'istanbul' | CoverageProviderModule | undefined
+// type Provider = 'c8' | 'istanbul' | Omit<string, 'c8' | 'istanbul'> | undefined
+type Provider = 'c8' | 'istanbul' | string | undefined
 
 export type CoverageOptions<T extends Provider = Provider> =
-  T extends CoverageProviderModule ? ({ provider: T } & BaseCoverageOptions) :
-    T extends 'istanbul' ? ({ provider: T } & CoverageIstanbulOptions) :
-        ({ provider?: T } & CoverageC8Options)
+  T extends 'istanbul' ? ({ provider: T } & CoverageIstanbulOptions) :
+    T extends 'c8' ? ({ provider: T } & CoverageC8Options) :
+      T extends undefined ? ({ provider?: T } & CoverageC8Options) :
+          ({ provider: T } & BaseCoverageOptions)
 
 /** Fields that have default values. Internally these will always be defined. */
 type FieldsWithDefaultValues =

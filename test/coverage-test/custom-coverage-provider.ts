@@ -3,6 +3,16 @@ import type { AfterSuiteRunMeta, CoverageProvider, CoverageProviderModule, Repor
 import { coverageConfigDefaults } from 'vitest/config'
 import { normalizeFilename } from './coverage-report-tests/utils'
 
+const CustomCoverageProviderModule: CoverageProviderModule = {
+  getProvider(): CoverageProvider {
+    return new CustomCoverageProvider()
+  },
+
+  takeCoverage() {
+    return { customCoverage: 'Custom coverage report from CustomCoverageProviderModule' }
+  },
+}
+
 /**
  * Provider that simply keeps track of the function that were called
  */
@@ -58,18 +68,10 @@ class CustomCoverageProvider implements CoverageProvider {
       enabled: true,
 
       // TODO: Fix. This does not pass to workers
-      provider: new CustomCoverageProviderModule(),
+      provider: import.meta.url,
 
     }
   }
 }
 
-export default class CustomCoverageProviderModule implements CoverageProviderModule {
-  getProvider(): CoverageProvider {
-    return new CustomCoverageProvider()
-  }
-
-  takeCoverage() {
-    return { customCoverage: 'Custom coverage report from CustomCoverageProviderModule' }
-  }
-}
+export default CustomCoverageProviderModule

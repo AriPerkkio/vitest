@@ -56,7 +56,8 @@ async function getTestRunner(config: ResolvedConfig): Promise<VitestRunner> {
 
   const originalOnAfterRun = testRunner.onAfterRun
   testRunner.onAfterRun = async (files) => {
-    const coverage = await takeCoverageInsideWorker(config.coverage)
+    console.log('takeCoverageInsideWorker')
+    const coverage = await takeCoverageInsideWorker(config.coverage, id => testRunner.importFile(id, 'setup') as any)
     rpc().onAfterSuiteRun({ coverage })
     await originalOnAfterRun?.call(testRunner, files)
   }

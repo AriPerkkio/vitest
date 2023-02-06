@@ -123,9 +123,10 @@ export class Vitest {
   }
 
   async initCoverageProvider() {
+    console.log('initCoverageProvider')
     if (this.coverageProvider !== undefined)
       return
-    this.coverageProvider = await getCoverageProvider(this.config.coverage)
+    this.coverageProvider = await getCoverageProvider(this.config.coverage, id => this.runner.executeId(id))
     if (this.coverageProvider) {
       await this.coverageProvider.initialize(this)
       this.config.coverage = this.coverageProvider.resolveOptions()
