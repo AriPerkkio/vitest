@@ -47,4 +47,6 @@ export async function run(ctx: WorkerContext) {
   const { run, executor } = await startViteNode(ctx)
   await run(ctx.files, ctx.config, ctx.environment, executor)
   await rpcDone()
+  // eslint-disable-next-line no-console
+  console.log('\nrpcDone::end#2\n')
 }

@@ -183,6 +183,9 @@ export async function withEnv(
     await fn()
   }
   finally {
+    process.stdout.write('\nenv.teardown::start\n')
+    // await new Promise(resolve => setImmediate(() => setTimeout(resolve)))
     await env.teardown(globalThis)
+    process.stdout.write('\nenv.teardown::end\n')
   }
 }
