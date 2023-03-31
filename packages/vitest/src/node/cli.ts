@@ -49,6 +49,7 @@ cli
   .option('--inspect', 'Enable Node.js inspector')
   .option('--inspect-brk', 'Enable Node.js inspector with break')
   .option('--test-timeout <time>', 'Default timeout of a test in milliseconds (default: 5000)')
+  .option('--experimental-vm-modules', 'Enable expiremental Vitest runner')
   .help()
 
 cli

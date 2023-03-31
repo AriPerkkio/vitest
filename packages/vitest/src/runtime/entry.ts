@@ -14,8 +14,16 @@ const runnersFile = resolve(distDir, 'runners.js')
 
 async function getTestRunnerConstructor(config: ResolvedConfig, executor: VitestExecutor): Promise<VitestRunnerConstructor> {
   if (!config.runner) {
-    const { VitestTestRunner, NodeBenchmarkRunner } = await executor.executeFile(runnersFile)
-    return (config.mode === 'test' ? VitestTestRunner : NodeBenchmarkRunner) as VitestRunnerConstructor
+    const { VitestTestRunner, NodeBenchmarkRunner, ExperimentalVmModulesRunner } = await executor.executeFile(runnersFile)
+
+    let runner = VitestTestRunner
+
+    if (config.experimentalVmModules)
+      runner = ExperimentalVmModulesRunner
+    if (config.mode === 'benchmark')
+      runner = NodeBenchmarkRunner
+
+    return (runner) as VitestRunnerConstructor
   }
   const mod = await executor.executeId(config.runner)
   if (!mod.default && typeof mod.default !== 'function')

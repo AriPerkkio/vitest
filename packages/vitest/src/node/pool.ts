@@ -55,6 +55,9 @@ export function createPool(ctx: Vitest): ProcessPool {
       execArg.startsWith('--cpu-prof') || execArg.startsWith('--heap-prof'),
     )
 
+    if (ctx.config.experimentalVmModules)
+      execArgv.push('--experimental-vm-modules', '--experimental-import-meta-resolve')
+
     const options: PoolProcessOptions = {
       execArgv: ctx.config.deps.registerNodeLoader
         ? [
@@ -65,6 +68,8 @@ export function createPool(ctx: Vitest): ProcessPool {
             loaderPath,
           ]
         : [
+            '--require',
+            suppressLoaderWarningsPath,
             ...execArgv,
             ...conditions,
           ],

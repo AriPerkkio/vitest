@@ -583,6 +583,11 @@ export interface InlineConfig {
    * Requires `singleThread: true` OR `threads: false`.
    */
   inspectBrk?: boolean
+
+  /**
+   * Enable experimental Vitest runner
+   */
+  experimentalVmModules?: boolean
 }
 
 export interface TypecheckConfig {

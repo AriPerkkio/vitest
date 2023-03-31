@@ -10,7 +10,7 @@ import type { VitestExecutor } from '../execute'
 export class VitestTestRunner implements VitestRunner {
   private snapshotClient = getSnapshotClient()
   private workerState = getWorkerState()
-  private __vitest_executor!: VitestExecutor
+  __vitest_executor!: VitestExecutor
 
   constructor(public config: ResolvedConfig) {}
 

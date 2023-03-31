@@ -24,8 +24,8 @@ export function createMethodsRPC(ctx: Vitest): RuntimeRPC {
       const r = await ctx.vitenode.transformRequest(id)
       return r?.map as RawSourceMap | undefined
     },
-    fetch(id, environment) {
-      const transformMode = getEnvironmentTransformMode(ctx.config, environment)
+    fetch(id, environment, overrideTransformMode) {
+      const transformMode = overrideTransformMode || getEnvironmentTransformMode(ctx.config, environment)
       return ctx.vitenode.fetchModule(id, transformMode)
     },
     resolveId(id, importer, environment) {

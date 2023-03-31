@@ -39,7 +39,7 @@ export interface FetchResult {
 
 export type HotContext = Omit<ViteHotContext, 'acceptDeps' | 'decline'>
 
-export type FetchFunction = (id: string) => Promise<FetchResult>
+export type FetchFunction = (id: string, transformMode?: 'web' | 'ssr') => Promise<FetchResult>
 
 export type ResolveIdFunction = (id: string, importer?: string) => Promise<ViteNodeResolveId | null>
 

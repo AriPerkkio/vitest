@@ -62,8 +62,8 @@ export async function startViteNode(ctx: ContextRPC) {
   process.on('unhandledRejection', e => catchError(e, 'Unhandled Rejection'))
 
   const executor = await createVitestExecutor({
-    fetchModule(id) {
-      return rpc().fetch(id, ctx.environment.name)
+    fetchModule(id, transformMode) {
+      return rpc().fetch(id, ctx.environment.name, transformMode)
     },
     resolveId(id, importer) {
       return rpc().resolveId(id, importer, ctx.environment.name)

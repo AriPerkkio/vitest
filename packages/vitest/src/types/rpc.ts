@@ -7,7 +7,7 @@ import type { File, TaskResultPack } from './tasks'
 import type { AfterSuiteRunMeta } from './worker'
 
 export interface RuntimeRPC {
-  fetch: (id: string, environment: VitestEnvironment) => Promise<FetchResult>
+  fetch: (id: string, environment: VitestEnvironment, transformMode?: 'web' | 'ssr') => Promise<FetchResult>
   resolveId: (id: string, importer: string | undefined, environment: VitestEnvironment) => Promise<ViteNodeResolveId | null>
   getSourceMap: (id: string, force?: boolean) => Promise<RawSourceMap | undefined>
 

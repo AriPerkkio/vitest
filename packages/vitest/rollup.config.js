@@ -50,6 +50,7 @@ const external = [
   'worker_threads',
   'node:worker_threads',
   'node:fs',
+  'node:vm',
   'inspector',
   'webdriverio',
   'safaridriver',
