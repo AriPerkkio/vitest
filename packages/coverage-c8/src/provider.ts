@@ -85,6 +85,21 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
 
     const report = createReport(options)
 
+    if (this.ctx.isBrowserEnabled()) {
+      const replaceUrl = (result: Profiler.ScriptCoverage) => {
+        return {
+          ...result,
+          // TODO: use a better way to replace url
+          url: result.url.replace('http://localhost:63315', this.ctx.config.root).split('?')[0],
+        }
+      }
+
+      this.coverages = this.coverages.map(coverage => ({
+        ...coverage,
+        result: coverage.result.map(replaceUrl),
+      }))
+    }
+
     // Overwrite C8's loader as results are in memory instead of file system
     report._loadReports = () => this.coverages
 
@@ -158,14 +173,16 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
     // This is a magic number. It corresponds to the amount of code
     // that we add in packages/vite-node/src/client.ts:114 (vm.runInThisContext)
     // TODO: Include our transformations in sourcemaps
-    const offset = 185
+    const offset = 0 // 185
 
     report._getSourceMap = (coverage: Profiler.ScriptCoverage) => {
       const path = _url.pathToFileURL(coverage.url.split('?')[0]).href
       const data = sourceMapMeta[path]
 
-      if (!data)
+      if (!data) {
+        this.ctx.logger.warn(`Could not find source map for ${coverage.url}`)
         return {}
+      }
 
       return {
         sourceMap: {

@@ -10,12 +10,16 @@ export interface WebdriverProviderOptions extends BrowserProviderOptions {
   browser: WebdriverBrowser
 }
 
+type AwaitedReturnType<T> = T extends (...args: any[]) => Promise<infer R> ? R : T
+type CDPSession = AwaitedReturnType<ReturnType<AwaitedReturnType<AwaitedReturnType<AwaitedReturnType<Browser['getPuppeteer']>['target']>>>['createCDPSession']>
+
 export class WebdriverBrowserProvider implements BrowserProvider {
   public name = 'webdriverio'
 
   private cachedBrowser: Browser | null = null
   private stopSafari: () => void = () => {}
   private browser!: WebdriverBrowser
+  private cdpSession!: CDPSession
   private ctx!: Vitest
 
   getSupportedBrowsers() {
@@ -65,9 +69,26 @@ export class WebdriverBrowserProvider implements BrowserProvider {
     return this.cachedBrowser
   }
 
+  async getCdpSession() {
+    if (this.browser !== 'chrome')
+      return undefined
+
+    return {
+      post: (method: string, params?: Record<string, any>) => {
+        return this.cdpSession.send(method as any, params)
+      },
+    }
+  }
+
   async openPage(url: string) {
     const browserInstance = await this.openBrowser()
     await browserInstance.url(url)
+
+    if (this.browser === 'chrome') {
+      const puppeteer = await browserInstance.getPuppeteer()
+      const [page] = await puppeteer.pages()
+      this.cdpSession ||= await page.target().createCDPSession()
+    }
   }
 
   async close() {

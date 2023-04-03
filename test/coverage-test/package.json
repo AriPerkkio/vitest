@@ -6,7 +6,7 @@
     "test:c8": "node ./testing.mjs --provider c8",
     "test:custom": "node ./testing.mjs --provider custom",
     "test:istanbul": "node ./testing.mjs --provider istanbul",
-    "test:browser": "node ./testing.mjs --browser --provider istanbul",
+    "test:browser": "node ./testing.mjs --browser --provider c8",
     "test:types": "vitest typecheck --run --reporter verbose"
   },
   "devDependencies": {

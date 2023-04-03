@@ -1,6 +1,7 @@
 import type { Awaitable } from '@vitest/utils'
 import type { Vitest } from '../node'
 import type { ApiConfig } from './config'
+import type { V8Session } from './coverage'
 
 export interface BrowserProviderOptions {
   browser: string
@@ -12,6 +13,7 @@ export interface BrowserProvider {
   initialize(ctx: Vitest, options: BrowserProviderOptions): Awaitable<void>
   openPage(url: string): Awaitable<void>
   close(): Awaitable<void>
+  getCdpSession?: () => Promise<V8Session | void>
 }
 
 export interface BrowserProviderModule {

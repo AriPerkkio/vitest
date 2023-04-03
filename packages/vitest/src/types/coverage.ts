@@ -36,17 +36,24 @@ export interface CoverageProviderModule {
   /**
    * Executed before tests are run in the worker thread.
    */
-  startCoverage?(): unknown | Promise<unknown>
+  startCoverage?(...args: any[]): unknown | Promise<unknown>
 
   /**
    * Executed on after each run in the worker thread. Possible to return a payload passed to the provider
    */
-  takeCoverage?(): unknown | Promise<unknown>
+  takeCoverage?(...args: any[]): unknown | Promise<unknown>
 
   /**
    * Executed after all tests have been run in the worker thread.
    */
-  stopCoverage?(): unknown | Promise<unknown>
+  stopCoverage?(...args: any[]): unknown | Promise<unknown>
+}
+
+export interface V8Session {
+  connect?: () => Promise<void> | void
+  disconnect?: () => Promise<void> | void
+  post: (command: string, options?: Record<string, any>) => Promise<any> | any
+
 }
 
 export type CoverageReporter = keyof ReportOptions

@@ -44,11 +44,11 @@ export async function getCoverageProvider(options: CoverageOptions | undefined, 
   return null
 }
 
-export async function startCoverageInsideWorker(options: CoverageOptions | undefined, loader: Loader) {
+export async function startCoverageInsideWorker(options: CoverageOptions | undefined, loader: Loader, ...rest: any[]) {
   const coverageModule = await resolveCoverageProviderModule(options, loader)
 
   if (coverageModule)
-    return coverageModule.startCoverage?.()
+    return coverageModule.startCoverage?.(...rest)
 
   return null
 }

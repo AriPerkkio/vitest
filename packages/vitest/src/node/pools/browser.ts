@@ -1,5 +1,6 @@
 import { createDefer } from '@vitest/utils'
 import { relative } from 'pathe'
+import { startCoverageInsideWorker, stopCoverageInsideWorker, takeCoverageInsideWorker } from '../../integrations/coverage'
 import type { Vitest } from '../core'
 import type { ProcessPool } from '../pool'
 
@@ -13,6 +14,11 @@ export function createBrowserPool(ctx: Vitest): ProcessPool {
     return defer
   }
 
+  // TODO: Where's the executor in this context? import() may not work for custom providers
+  const executor = {
+    executeId: (id: string) => import(id),
+  }
+
   const runTests = async (files: string[]) => {
     const paths = files.map(file => relative(ctx.config.root, file))
 
@@ -23,7 +29,10 @@ export function createBrowserPool(ctx: Vitest): ProcessPool {
         url.searchParams.append('path', path)
         url.searchParams.set('id', path)
         await provider.openPage(url.toString())
+        await startCoverageInsideWorker(ctx.config.coverage, executor, await provider.getCdpSession?.())
         await waitForTest(path)
+        const coverage = await takeCoverageInsideWorker(ctx.config.coverage, executor)
+        await ctx.coverageProvider?.onAfterSuiteRun({ coverage })
       }
     }
     else {
@@ -31,8 +40,13 @@ export function createBrowserPool(ctx: Vitest): ProcessPool {
       url.searchParams.set('id', 'no-isolate')
       paths.forEach(path => url.searchParams.append('path', path))
       await provider.openPage(url.toString())
+      await startCoverageInsideWorker(ctx.config.coverage, executor, await provider.getCdpSession?.())
       await waitForTest('no-isolate')
+      const coverage = await takeCoverageInsideWorker(ctx.config.coverage, executor)
+      await ctx.coverageProvider?.onAfterSuiteRun({ coverage })
     }
+
+    await stopCoverageInsideWorker(ctx.config.coverage, executor)
   }
 
   return {

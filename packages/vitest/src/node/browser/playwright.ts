@@ -1,4 +1,4 @@
-import type { Page } from 'playwright'
+import type { CDPSession, Page } from 'playwright'
 import type { BrowserProvider, BrowserProviderOptions } from '../../types/browser'
 import { ensurePackageInstalled } from '../pkg'
 import type { Vitest } from '../core'
@@ -15,6 +15,7 @@ export class PlaywrightBrowserProvider implements BrowserProvider {
 
   private cachedBrowser: Page | null = null
   private browser!: PlaywrightBrowser
+  private cdpSession!: CDPSession
   private ctx!: Vitest
 
   getSupportedBrowsers() {
@@ -46,7 +47,21 @@ export class PlaywrightBrowserProvider implements BrowserProvider {
       playwrightInstance.close()
     })
 
+    if (this.browser === 'chromium')
+      this.cdpSession ||= await playwrightInstance.newBrowserCDPSession()
+
     return this.cachedBrowser
+  }
+
+  async getCdpSession() {
+    if (this.browser !== 'chromium')
+      return undefined
+
+    return {
+      post: (command: string, options?: Record<string, any>): any => {
+        return this.cdpSession.send(command as any, options)
+      },
+    }
   }
 
   async openPage(url: string) {
