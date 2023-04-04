@@ -52,6 +52,9 @@ async function loadConfig() {
 }
 
 ws.addEventListener('open', async () => {
+  const iFrame = document.getElementById('vitest-ui') as HTMLIFrameElement
+  iFrame.setAttribute('src', '/__vitest__/')
+
   await loadConfig()
 
   const { getSafeTimers } = await importId('vitest/utils') as typeof import('vitest/utils')
@@ -69,9 +72,6 @@ ws.addEventListener('open', async () => {
   }
 
   const paths = getQueryPaths()
-
-  const iFrame = document.getElementById('vitest-ui') as HTMLIFrameElement
-  iFrame.setAttribute('src', '/__vitest__/')
 
   await setupConsoleLogSpy()
   setupDialogsSpy()
