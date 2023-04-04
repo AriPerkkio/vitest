@@ -1,4 +1,4 @@
-import { existsSync, promises as fs } from 'fs'
+import { existsSync, promises as fs, writeFileSync } from 'fs'
 import _url from 'url'
 import type { Profiler } from 'inspector'
 import { extname, resolve } from 'pathe'
@@ -98,7 +98,20 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
         ...coverage,
         result: coverage.result.map(replaceUrl),
       }))
+
+      for (const coverage of this.coverages) {
+        for (const { url } of coverage.result) {
+          if (report._shouldInstrument(url))
+            await this.ctx.vitenode.fetchModule(url, 'web')
+        }
+      }
     }
+
+    this.coverages = this.coverages.map(coverage => ({
+      result: coverage.result.filter(result => report._shouldInstrument(result.url)),
+    })).filter(coverage => coverage.result.length > 0)
+
+    writeFileSync('./v8-coverage.json', JSON.stringify(this.coverages, null, 2), 'utf-8')
 
     // Overwrite C8's loader as results are in memory instead of file system
     report._loadReports = () => this.coverages
