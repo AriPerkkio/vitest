@@ -28,10 +28,10 @@ export default defineConfig({
 
       // These will be updated by tests and reseted back by generic.report.test.ts
       thresholdAutoUpdate: true,
-      functions: 1.01,
-      branches: 1.01,
-      lines: 1.01,
-      statements: 1.01,
+      functions: 66.66,
+      branches: 85.71,
+      lines: 72.5,
+      statements: 72.5,
     },
     setupFiles: [
       resolve(__dirname, './setup.ts'),

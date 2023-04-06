@@ -1,10 +1,10 @@
-import { existsSync, promises as fs, writeFileSync } from 'fs'
-import _url from 'url'
+import { existsSync, promises as fs, readFileSync } from 'fs'
+import { fileURLToPath, pathToFileURL } from 'url'
 import type { Profiler } from 'inspector'
-import { extname, resolve } from 'pathe'
+import { normalize, resolve } from 'pathe'
 import c from 'picocolors'
 import { provider } from 'std-env'
-import type { EncodedSourceMap } from 'vite-node'
+import type { EncodedSourceMap, FetchResult } from 'vite-node'
 import { coverageConfigDefaults } from 'vitest/config'
 import { BaseCoverageProvider } from 'vitest/coverage'
 // eslint-disable-next-line no-restricted-imports
@@ -17,6 +17,11 @@ import createReport from 'c8/lib/report.js'
 import { checkCoverages } from 'c8/lib/commands/check-coverage.js'
 
 type Options = ResolvedCoverageOptions<'c8'>
+
+// This is a magic number. It corresponds to the amount of code
+// that we add in packages/vite-node/src/client.ts:114 (vm.runInThisContext)
+// TODO: Include our transformations in sourcemaps
+const OFFSET_NODE_VM = '.'.repeat(185)
 
 export class C8CoverageProvider extends BaseCoverageProvider implements CoverageProvider {
   name = 'c8'
@@ -84,6 +89,7 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
     }
 
     const report = createReport(options)
+    const shouldInstrument = (result: Profiler.ScriptCoverage): Boolean => report._shouldInstrument(result.url)
 
     if (this.ctx.isBrowserEnabled()) {
       const replaceUrl = (result: Profiler.ScriptCoverage) => {
@@ -96,112 +102,74 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
 
       this.coverages = this.coverages.map(coverage => ({
         ...coverage,
-        result: coverage.result.map(replaceUrl),
-      }))
-
-      for (const coverage of this.coverages) {
-        for (const { url } of coverage.result) {
-          if (report._shouldInstrument(url))
-            await this.ctx.vitenode.fetchModule(url, 'web')
-        }
-      }
+        result: coverage.result
+          .map(replaceUrl)
+          .filter(shouldInstrument)
+          .map(result => ({ ...result, url: pathToFileURL(result.url).href })),
+      })).filter(coverage => coverage.result.length > 0)
     }
-
-    this.coverages = this.coverages.map(coverage => ({
-      result: coverage.result.filter(result => report._shouldInstrument(result.url)),
-    })).filter(coverage => coverage.result.length > 0)
-
-    writeFileSync('./v8-coverage.json', JSON.stringify(this.coverages, null, 2), 'utf-8')
 
     // Overwrite C8's loader as results are in memory instead of file system
     report._loadReports = () => this.coverages
 
-    interface MapAndSource { map: EncodedSourceMap; source: string | undefined }
-    type SourceMapMeta = { url: string; filepath: string } & MapAndSource
+    // TODO: What to do when a file is loaded both by Node and Browser?
+    let transformResults: Map<string, { result: FetchResult }> = this.ctx.vitenode.fetchCache
 
-    // add source maps
-    const sourceMapMeta: Record<SourceMapMeta['url'], MapAndSource> = {}
-    const extensions = Array.isArray(this.options.extension) ? this.options.extension : [this.options.extension]
+    if (this.ctx.isBrowserEnabled()) {
+      transformResults = new Map<string, { result: { code?: string; map?: EncodedSourceMap } }>()
 
-    const entries = Array
-      .from(this.ctx.vitenode.fetchCache.entries())
-      .filter(entry => report._shouldInstrument(entry[0]))
-      .map(([file, { result }]) => {
-        if (!result.map)
-          return null
-
-        const filepath = file.split('?')[0]
-        const url = _url.pathToFileURL(filepath).href
-        const extension = extname(file) || extname(url)
-
-        return {
-          filepath,
-          url,
-          extension,
-          map: result.map,
-          source: result.code,
+      for (const coverage of this.coverages) {
+        for (const { url } of coverage.result) {
+          const path = fileURLToPath(url)
+          const result = await this.ctx.browser.transformRequest(path)
+          if (result) {
+            transformResults.set(path, {
+              result: {
+                code: result.code,
+                map: result.map as any,
+              },
+            })
+          }
+          else {
+            this.ctx.logger.error(`No transform result for ${url}`)
+          }
         }
-      })
-      .filter((entry) => {
-        if (!entry)
-          return false
+      }
+    }
 
-        if (!extensions.includes(entry.extension))
-          return false
+    // writeFileSync('./v8-coverage.json', JSON.stringify(this.coverages, null, 2), 'utf-8')
+    // writeFileSync('./transformResults.json', JSON.stringify(Array.from(transformResults.entries()), null, 2), 'utf-8')
 
-        // Mappings and sourcesContent are needed for C8 to work
-        return (
-          entry.map.mappings.length > 0
-          && entry.map.sourcesContent
-          && entry.map.sourcesContent.length > 0
-          && entry.map.sourcesContent[0]
-          && entry.map.sourcesContent[0].length > 0
-        )
-      }) as SourceMapMeta[]
+    const originalGetSourceMap = report._getSourceMap
+    report._getSourceMap = (coverage: Profiler.ScriptCoverage) => {
+      const path = normalize(coverage.url.split('?')[0])
+      const transformResult = transformResults.get(path)
+      const map = transformResult?.result.map
 
-    await Promise.all(entries.map(async ({ url, source, map, filepath }) => {
-      if (url in sourceMapMeta)
-        return
+      if (!map) {
+        this.ctx.logger.error(`Unable to find source maps for ${path}.`)
+        return originalGetSourceMap.call(report, coverage)
+      }
 
-      let code: string | undefined
+      let sourcesContent = map.sourcesContent?.[0]
+
       try {
-        code = (await fs.readFile(filepath)).toString()
+        // The map.sourcesContent is present most of the time. Fallback to file system in edge cases.
+        sourcesContent = sourcesContent || readFileSync(path, 'utf-8')
       }
       catch { }
 
-      // Vite does not report full path in sourcemap sources
-      // so use an actual file path
-      const sources = [url]
-
-      sourceMapMeta[url] = {
-        source,
-        map: {
-          sourcesContent: code ? [code] : undefined,
-          ...map,
-          sources,
-        },
-      }
-    }))
-
-    // This is a magic number. It corresponds to the amount of code
-    // that we add in packages/vite-node/src/client.ts:114 (vm.runInThisContext)
-    // TODO: Include our transformations in sourcemaps
-    const offset = 0 // 185
-
-    report._getSourceMap = (coverage: Profiler.ScriptCoverage) => {
-      const path = _url.pathToFileURL(coverage.url.split('?')[0]).href
-      const data = sourceMapMeta[path]
-
-      if (!data) {
-        this.ctx.logger.warn(`Could not find source map for ${coverage.url}`)
-        return {}
-      }
-
       return {
         sourceMap: {
-          sourcemap: data.map,
+          sourcemap: {
+            ...map,
+            sourcesContent: sourcesContent ? [sourcesContent] : [],
+            sources: [path],
+          },
         },
-        source: Array(offset).fill('.').join('') + data.source,
+        // Length of each line in source should match the code that was run in `node:vm`.
+        // V8 reports use offsets starting from the first column of first line.
+        source: (this.ctx.isBrowserEnabled() ? '' : OFFSET_NODE_VM) + transformResult.result.code,
       }
     }
 
