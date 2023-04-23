@@ -69,12 +69,12 @@
     "ts-node": "^10.9.1",
     "tsup": "^6.7.0",
     "typescript": "^5.0.3",
-    "vite": "^4.2.1",
+    "vite": "^4.3.0",
     "vitest": "workspace:*"
   },
   "pnpm": {
     "overrides": {
-      "vite": "^4.2.1",
+      "vite": "^4.3.0",
       "vitest": "workspace:*"
     }
   },

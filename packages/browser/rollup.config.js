@@ -1,10 +1,12 @@
+import { readFileSync } from 'node:fs'
 import esbuild from 'rollup-plugin-esbuild'
 import dts from 'rollup-plugin-dts'
 import resolve from '@rollup/plugin-node-resolve'
 import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
 import alias from '@rollup/plugin-alias'
-import pkg from './package.json' assert { type: 'json' }
+
+const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
 const external = [
   ...Object.keys(pkg.dependencies),
