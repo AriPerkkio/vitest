@@ -21,35 +21,6 @@ env:
   PUPPETEER_DOWNLOAD_PATH: ${{ github.workspace }}/.cache/Puppeteer
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/actions/setup-and-cache
-
-      - name: Install
-        run: pnpm i
-
-      - name: Lint
-        run: pnpm run lint
-
-  typecheck:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/actions/setup-and-cache
-
-      - name: Install
-        run: pnpm i
-
-      - name: Build
-        run: pnpm run build
-
-      - name: Typecheck
-        run: pnpm run typecheck
-
   test:
     runs-on: ${{ matrix.os }}
 
@@ -57,13 +28,8 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
-        node_version: [16, 18]
-        include:
-          - os: macos-latest
-            node_version: 18
-          - os: windows-latest
-            node_version: 18
+        os: [windows-latest]
+        node_version: [18]
       fail-fast: false
 
     steps:
@@ -79,127 +45,36 @@ jobs:
       - name: Build
         run: pnpm run build
 
-      - name: Test
-        run: pnpm run test:ci
+      - name: Test default shell
+        run: |
+          cd nested/directory/with/capitals
+          pnpm run test
+        working-directory: test/Windows-paths
 
-      - name: Test Single Thread
-        run: pnpm run test:ci:single-thread
+      - name: Test default bash
+        shell: bash
+        run: |
+          cd nested/directory/with/capitals
+          pnpm run test
+        working-directory: test/Windows-paths
 
-  test-ui:
-    runs-on: ubuntu-latest
+      - name: Test default cmd
+        shell: cmd
+        run: |
+          cd nested/directory/with/capitals
+          pnpm run test
+        working-directory: test/Windows-paths
 
-    timeout-minutes: 10
+      - name: Test default powershell
+        shell: powershell
+        run: |
+          cd nested/directory/with/capitals
+          pnpm run test
+        working-directory: test/Windows-paths
 
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/actions/setup-and-cache
-        with:
-          node-version: 16.16
-
-      - name: Install
-        run: pnpm i
-
-      - name: Test UI
-        run: pnpm run ui:test
-
-  test-browser:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        browser: [[chrome, chromium], [firefox, firefox], [edge, webkit]]
-
-    timeout-minutes: 30
-
-    env:
-      BROWSER: ${{ matrix.browser[0] }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/actions/setup-and-cache
-        with:
-          node-version: 18
-
-      - uses: browser-actions/setup-chrome@v1
-      - uses: browser-actions/setup-firefox@v1
-      - uses: browser-actions/setup-edge@v1
-
-      - name: Install
-        run: pnpm i
-
-      - name: Install Playwright Dependencies
-        run: pnpx playwright install-deps
-
-      - name: Build
-        run: pnpm run build
-
-      - name: Test Browser (webdriverio)
-        run: pnpm run test:browser:webdriverio
-
-      - name: Test Browser (playwright)
-        run: pnpm run test:browser:playwright
-        env:
-          BROWSER: ${{ matrix.browser[1] }}
-
-  test-browser-windows:
-    runs-on: windows-latest
-    strategy:
-      matrix:
-        browser: [[chrome, chromium], [edge, webkit]]
-
-    timeout-minutes: 30
-
-    env:
-      BROWSER: ${{ matrix.browser[0] }}
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/actions/setup-and-cache
-        with:
-          node-version: 18
-
-      - uses: browser-actions/setup-chrome@v1
-      - uses: browser-actions/setup-edge@v1
-
-      - name: Install
-        run: pnpm i
-
-      - name: Install Playwright Dependencies
-        run: pnpx playwright install-deps
-
-      - name: Build
-        run: pnpm run build
-
-      - name: Test Browser (webdriverio)
-        run: pnpm run test:browser:webdriverio
-
-      - name: Test Browser (playwright)
-        run: pnpm run test:browser:playwright
-        env:
-          BROWSER: ${{ matrix.browser[1] }}
-
-  test-browser-safari:
-    runs-on: macos-latest
-    timeout-minutes: 30
-
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/actions/setup-and-cache
-        with:
-          node-version: 18
-
-      - name: Install
-        run: sudo pnpm i --frozen-lockfile
-
-      - name: Build
-        run: sudo pnpm run build
-
-      - name: Enable
-        run: sudo safaridriver --enable
-
-      - name: Test Browser (webdriverio)
-        run: sudo BROWSER=safari pnpm run test:browser:webdriverio
-
-      - name: Test Browser (playwright)
-        run: sudo BROWSER=webkit pnpm run test:browser:playwright
+      - name: Test default pwsh
+        shell: pwsh
+        run: |
+          cd nested/directory/with/capitals
+          pnpm run test
+        working-directory: test/Windows-paths

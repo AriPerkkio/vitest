@@ -1399,6 +1399,15 @@ importers:
         specifier: ^2.79.1
         version: 2.79.1
 
+  test/Windows-paths/nested/Directory/with/Capitals:
+    devDependencies:
+      vite:
+        specifier: ^4.2.1
+        version: 4.2.1(@types/node@18.16.3)
+      vitest:
+        specifier: workspace:*
+        version: link:../../../../../../packages/vitest
+
   test/bail:
     devDependencies:
       '@vitest/browser':
