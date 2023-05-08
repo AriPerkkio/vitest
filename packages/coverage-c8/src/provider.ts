@@ -1,25 +1,44 @@
 import { existsSync, promises as fs } from 'node:fs'
-import _url from 'node:url'
 import type { Profiler } from 'node:inspector'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import v8ToIstanbul from 'v8-to-istanbul'
+import { mergeProcessCovs } from '@bcoe/v8-coverage'
+import libReport from 'istanbul-lib-report'
+import reports from 'istanbul-reports'
+import type { CoverageMap } from 'istanbul-lib-coverage'
+import libCoverage from 'istanbul-lib-coverage'
+import libSourceMaps from 'istanbul-lib-source-maps'
 import MagicString from 'magic-string'
 import remapping from '@ampproject/remapping'
-import { extname, resolve } from 'pathe'
+import { normalize, resolve } from 'pathe'
 import c from 'picocolors'
 import { provider } from 'std-env'
 import type { EncodedSourceMap } from 'vite-node'
-import { coverageConfigDefaults } from 'vitest/config'
+import { coverageConfigDefaults, defaultExclude, defaultInclude } from 'vitest/config'
 import { BaseCoverageProvider } from 'vitest/coverage'
 import type { AfterSuiteRunMeta, CoverageC8Options, CoverageProvider, ReportContext, ResolvedCoverageOptions } from 'vitest'
 import type { Vitest } from 'vitest/node'
-import type { Report } from 'c8'
 
 // @ts-expect-error missing types
-import createReport from 'c8/lib/report.js'
+import _TestExclude from 'test-exclude'
 
-// @ts-expect-error missing types
-import { checkCoverages } from 'c8/lib/commands/check-coverage.js'
+interface TestExclude {
+  new(opts: {
+    cwd?: string | string[]
+    include?: string | string[]
+    exclude?: string | string[]
+    extension?: string | string[]
+    excludeNodeModules?: boolean
+  }): {
+    shouldInstrument(filePath: string): boolean
+    glob(cwd: string): Promise<string[]>
+  }
+}
 
 type Options = ResolvedCoverageOptions<'c8'>
+
+// TODO: vite-node should export this
+const WRAPPER_LENGTH = 185
 
 // Note that this needs to match the line ending as well
 const VITE_EXPORTS_LINE_PATTERN = /Object\.defineProperty\(__vite_ssr_exports__.*\n/g
@@ -29,6 +48,7 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
 
   ctx!: Vitest
   options!: Options
+  testExclude!: InstanceType<TestExclude>
   coverages: Profiler.TakePreciseCoverageReturnType[] = []
 
   initialize(ctx: Vitest) {
@@ -37,10 +57,6 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
     this.ctx = ctx
     this.options = {
       ...coverageConfigDefaults,
-
-      // Provider specific defaults
-      excludeNodeModules: true,
-      allowExternal: false,
 
       // User's options
       ...config,
@@ -54,6 +70,14 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
       branches: config['100'] ? 100 : config.branches,
       statements: config['100'] ? 100 : config.statements,
     }
+
+    this.testExclude = new _TestExclude({
+      cwd: ctx.config.root,
+      include: typeof this.options.include === 'undefined' ? undefined : [...this.options.include],
+      exclude: [...defaultExclude, ...defaultInclude, ...this.options.exclude],
+      excludeNodeModules: true,
+      extension: this.options.extension,
+    })
   }
 
   resolveOptions() {
@@ -75,122 +99,70 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
     if (provider === 'stackblitz')
       this.ctx.logger.log(c.blue(' % ') + c.yellow('@vitest/coverage-c8 does not work on Stackblitz. Report will be empty.'))
 
-    const options: ConstructorParameters<typeof Report>[0] = {
-      ...this.options,
-      all: this.options.all && allTestsRun,
-      reporter: this.options.reporter.map(([reporterName]) => reporterName),
-      reporterOptions: this.options.reporter.reduce((all, [name, options]) => ({
-        ...all,
-        [name]: {
-          skipFull: this.options.skipFull,
-          projectRoot: this.ctx.config.root,
-          ...options,
-        },
-      }), {}),
+    const { result: scriptCoverages } = mergeProcessCovs(this.coverages.map(coverage => ({
+      result: coverage.result.filter(result => this.testExclude.shouldInstrument(fileURLToPath(result.url))),
+    })))
+
+    if (this.options.all && allTestsRun) {
+      const coveredFiles = Array.from(scriptCoverages.map(r => r.url))
+      const untestedFiles = await this.getUntestedFiles(coveredFiles)
+
+      scriptCoverages.push(...untestedFiles)
     }
 
-    const report = createReport(options)
+    const converted = await Promise.all(scriptCoverages.map(async ({ url, functions }) => {
+      const sources = await this.getSources(url)
 
-    // Overwrite C8's loader as results are in memory instead of file system
-    report._loadReports = () => this.coverages
+      const converter = v8ToIstanbul(url, WRAPPER_LENGTH, sources)
+      await converter.load()
 
-    interface MapAndSource { map: EncodedSourceMap; source: string | undefined }
-    type SourceMapMeta = { url: string; filepath: string } & MapAndSource
-
-    // add source maps
-    const sourceMapMeta: Record<SourceMapMeta['url'], MapAndSource> = {}
-    const extensions = Array.isArray(this.options.extension) ? this.options.extension : [this.options.extension]
-
-    const fetchCache = this.ctx.projects.map(project =>
-      Array.from(project.vitenode.fetchCache.entries()),
-    ).flat()
-
-    const entries = Array
-      .from(fetchCache)
-      .filter(entry => report._shouldInstrument(entry[0]))
-      .map(([file, { result }]) => {
-        if (!result.map)
-          return null
-
-        const filepath = file.split('?')[0]
-        const url = _url.pathToFileURL(filepath).href
-        const extension = extname(file) || extname(url)
-
-        return {
-          filepath,
-          url,
-          extension,
-          map: result.map,
-          source: result.code,
-        }
-      })
-      .filter((entry) => {
-        if (!entry)
-          return false
-
-        if (!extensions.includes(entry.extension))
-          return false
-
-        // Mappings and sourcesContent are needed for C8 to work
-        return (
-          entry.map.mappings.length > 0
-          && entry.map.sourcesContent
-          && entry.map.sourcesContent.length > 0
-          && entry.map.sourcesContent[0]
-          && entry.map.sourcesContent[0].length > 0
-        )
-      }) as SourceMapMeta[]
-
-    await Promise.all(entries.map(async ({ url, source, map, filepath }) => {
-      if (url in sourceMapMeta)
-        return
-
-      let code: string | undefined
-      try {
-        code = (await fs.readFile(filepath)).toString()
-      }
-      catch { }
-
-      // Vite does not report full path in sourcemap sources
-      // so use an actual file path
-      const sources = [url]
-
-      sourceMapMeta[url] = {
-        source,
-        map: {
-          sourcesContent: code ? [code] : undefined,
-          ...map,
-          sources,
-        },
-      }
+      converter.applyCoverage(functions)
+      return converter.toIstanbul()
     }))
 
-    // This is a magic number. It corresponds to the amount of code
-    // that we add in packages/vite-node/src/client.ts:114 (vm.runInThisContext)
-    // TODO: Include our transformations in sourcemaps
-    const offset = 185
+    const mergedCoverage = converted.reduce((coverage, previousCoverageMap) => {
+      const map = libCoverage.createCoverageMap(coverage)
+      map.merge(previousCoverageMap)
+      return map
+    }, libCoverage.createCoverageMap({}))
 
-    report._getSourceMap = (coverage: Profiler.ScriptCoverage) => {
-      const path = _url.pathToFileURL(coverage.url.split('?')[0]).href
-      const data = sourceMapMeta[path]
+    const sourceMapStore = libSourceMaps.createSourceMapStore()
+    const coverageMap: CoverageMap = await sourceMapStore.transformCoverage(mergedCoverage)
 
-      if (!data)
-        return {}
+    const context = libReport.createContext({
+      dir: this.options.reportsDirectory,
+      coverageMap,
+      sourceFinder: sourceMapStore.sourceFinder,
+      watermarks: this.options.watermarks,
+    })
 
-      return {
-        sourceMap: {
-          sourcemap: removeViteHelpersFromSourceMaps(data.source, data.map),
-        },
-        source: Array(offset).fill('.').join('') + data.source,
-      }
+    for (const reporter of this.options.reporter) {
+      reports.create(reporter[0], {
+        skipFull: this.options.skipFull,
+        projectRoot: this.ctx.config.root,
+        ...reporter[1],
+      }).execute(context)
     }
 
-    await report.run()
-    await checkCoverages(options, report)
+    if (this.options.branches
+      || this.options.functions
+      || this.options.lines
+      || this.options.statements) {
+      this.checkThresholds({
+        coverageMap,
+        thresholds: {
+          branches: this.options.branches,
+          functions: this.options.functions,
+          lines: this.options.lines,
+          statements: this.options.statements,
+        },
+        perFile: this.options.perFile,
+      })
+    }
 
     if (this.options.thresholdAutoUpdate && allTestsRun) {
       this.updateThresholds({
-        coverageMap: await report.getCoverageMapFromAllCoverageFiles(),
+        coverageMap,
         thresholds: {
           branches: this.options.branches,
           functions: this.options.functions,
@@ -200,6 +172,66 @@ export class C8CoverageProvider extends BaseCoverageProvider implements Coverage
         perFile: this.options.perFile,
         configurationFile: this.ctx.server.config.configFile,
       })
+    }
+  }
+
+  private async getUntestedFiles(testedFiles: string[]): Promise<Profiler.ScriptCoverage[]> {
+    const includedFiles = await this.testExclude.glob(this.ctx.config.root)
+    const uncoveredFiles = includedFiles
+      .map(file => pathToFileURL(resolve(this.ctx.config.root, file)))
+      .filter(file => !testedFiles.includes(file.href))
+
+    return await Promise.all(uncoveredFiles.map(async (uncoveredFile) => {
+      const { source } = await this.getSources(uncoveredFile.href)
+
+      return {
+        url: uncoveredFile.href,
+        scriptId: '0',
+        // Create a made up function to mark whole file as uncovered. Note that this does not exist in source maps.
+        functions: [{
+          ranges: [{
+            startOffset: 0,
+            // Wrapper length is required even for untested files istanbuljs/v8-to-istanbul#209
+            endOffset: WRAPPER_LENGTH + source.length,
+            count: 0,
+          }],
+          isBlockCoverage: true,
+          // This is magical value that indicates an empty report: https://github.com/istanbuljs/v8-to-istanbul/blob/fca5e6a9e6ef38a9cdc3a178d5a6cf9ef82e6cab/lib/v8-to-istanbul.js#LL131C40-L131C40
+          functionName: '(empty-report)',
+        }],
+      }
+    }))
+  }
+
+  private async getSources(url: string): Promise<{
+    source: string
+    originalSource?: string
+    sourceMap?: { sourcemap: EncodedSourceMap }
+  } | { source: string }> {
+    const filePath = normalize(fileURLToPath(url))
+    const transformResult = this.ctx.projects
+      .map(project => project.vitenode.fetchCache.get(filePath)?.result)
+      .filter(Boolean)
+      .shift()
+
+    const map = transformResult?.map
+    const code = transformResult?.code
+    const sourcesContent = map?.sourcesContent?.[0] || await fs.readFile(filePath, 'utf-8')
+
+    if (!map)
+      return { source: code || sourcesContent }
+
+    return {
+      originalSource: sourcesContent,
+      source: code || sourcesContent,
+      sourceMap: {
+        sourcemap: removeViteHelpersFromSourceMaps(code, {
+          ...map,
+          version: 3,
+          sources: [url],
+          sourcesContent: [sourcesContent],
+        }),
+      },
     }
   }
 }
@@ -225,5 +257,5 @@ function removeViteHelpersFromSourceMaps(source: string | undefined, map: Encode
     () => null,
   )
 
-  return combinedMap
+  return combinedMap as EncodedSourceMap
 }

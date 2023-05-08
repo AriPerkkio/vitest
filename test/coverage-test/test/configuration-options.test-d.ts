@@ -45,10 +45,7 @@ test('provider options, generic', () => {
 test('provider specific options, c8', () => {
   assertType<Coverage>({
     provider: 'c8',
-    src: ['string'],
     100: true,
-    excludeNodeModules: false,
-    allowExternal: true,
   })
 
   assertType<Coverage>({

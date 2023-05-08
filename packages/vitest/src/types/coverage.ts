@@ -221,27 +221,6 @@ export interface CoverageIstanbulOptions extends BaseCoverageOptions {
 
 export interface CoverageC8Options extends BaseCoverageOptions {
   /**
-   * Allow files from outside of your cwd.
-   *
-   * @default false
-   */
-  allowExternal?: boolean
-
-  /**
-   * Exclude coverage under `/node_modules/`
-   *
-   * @default true
-   */
-  excludeNodeModules?: boolean
-
-  /**
-   * Specifies the directories that are used when `--all` is enabled.
-   *
-   * @default cwd
-  */
-  src?: string[]
-
-  /**
    * Shortcut for `--check-coverage --lines 100 --functions 100 --branches 100 --statements 100`
    *
    * @default false

@@ -843,33 +843,6 @@ See [istanbul documentation](https://github.com/istanbuljs/nyc#coverage-threshol
 Threshold for statements.
 See [istanbul documentation](https://github.com/istanbuljs/nyc#coverage-thresholds) for more information.
 
-#### coverage.allowExternal
-
-- **Type:** `boolean`
-- **Default:** `false`
-- **Available for providers:** `'c8'`
-- **CLI:** `--coverage.allowExternal`, `--coverage.allowExternal=false`
-
-Allow files from outside of your cwd.
-
-#### coverage.excludeNodeModules
-
-- **Type:** `boolean`
-- **Default:** `true`
-- **Available for providers:** `'c8'`
-- **CLI:** `--coverage.excludeNodeModules`, `--coverage.excludeNodeModules=false`
-
-Exclude coverage under `/node_modules/`.
-
-#### coverage.src
-
-- **Type:** `string[]`
-- **Default:** `process.cwd()`
-- **Available for providers:** `'c8'`
-- **CLI:** `--coverage.src=<path>`
-
-Specifies the directories that are used when `--all` is enabled.
-
 #### coverage.100
 
 - **Type:** `boolean`
