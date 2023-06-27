@@ -431,7 +431,7 @@ export class Vitest {
       .finally(async () => {
         // can be duplicate files if different projects are using the same file
         const specs = Array.from(new Set(paths.map(([, p]) => p)))
-        await this.report('onFinished', this.state.getFiles(specs), this.state.getUnhandledErrors())
+        await this.report('onFinished', this.state.getFiles(specs).slice(0, 1), this.state.getUnhandledErrors())
         this.runningPromise = undefined
       })
 
