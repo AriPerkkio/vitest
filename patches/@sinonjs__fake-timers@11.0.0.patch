@@ -1,0 +1,13 @@
+diff --git a/src/fake-timers-src.js b/src/fake-timers-src.js
+index f5129e5e2b50aec46ba437ffbc02e9e360bdd914..165171eee48bb9c435261368bd6bb49472ffccbf 100644
+--- a/src/fake-timers-src.js
++++ b/src/fake-timers-src.js
+@@ -161,7 +161,7 @@ function withGlobal(_global) {
+         hrtimePresent && typeof _global.process.hrtime.bigint === "function";
+     const nextTickPresent =
+         _global.process && typeof _global.process.nextTick === "function";
+-    const utilPromisify = _global.process && require("util").promisify;
++    const utilPromisify = undefined; // _global.process && require("util").promisify;
+     const performancePresent =
+         _global.performance && typeof _global.performance.now === "function";
+     const hasPerformancePrototype =
