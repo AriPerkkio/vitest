@@ -11,6 +11,7 @@ import libSourceMaps from 'istanbul-lib-source-maps'
 import MagicString from 'magic-string'
 import { parseModule } from 'magicast'
 import remapping from '@ampproject/remapping'
+import { TraceMap, eachMapping } from '@jridgewell/trace-mapping'
 import { normalize, resolve } from 'pathe'
 import c from 'picocolors'
 import { provider } from 'std-env'
@@ -371,7 +372,18 @@ export class V8CoverageProvider extends BaseCoverageProvider implements Coverage
         await converter.load()
 
         converter.applyCoverage(functions)
-        coverageMap.merge(converter.toIstanbul())
+
+        const coverage = converter.toIstanbul()
+
+        if (this.options.experimentalExcludeEmptyLines) {
+          if (coverage && sources.sourceMap) {
+            const fileCoverage = coverage[fileURLToPath(sources.sourceMap.sourcemap.sources[0] || url)]
+
+            excludeEmptyLines(fileCoverage, sources.sourceMap.sourcemap)
+          }
+        }
+
+        coverageMap.merge(coverage)
       }))
     }
 
@@ -433,4 +445,20 @@ function normalizeTransformResults(fetchCache: Map<string, { result: FetchResult
   }
 
   return normalized
+}
+
+function excludeEmptyLines(fileCoverage: libCoverage.CoverageMapData[string], sourceMap: EncodedSourceMap) {
+  const coveredLines = new Set<number>()
+
+  eachMapping(new TraceMap(sourceMap), (mapping) => {
+    if (mapping.originalLine !== null)
+      coveredLines.add(mapping.originalLine)
+  })
+
+  for (const index of Object.keys(fileCoverage.s)) {
+    if (!coveredLines.has(1 + Number.parseInt(index))) {
+      delete fileCoverage.s[index]
+      delete fileCoverage.statementMap[index]
+    }
+  }
 }

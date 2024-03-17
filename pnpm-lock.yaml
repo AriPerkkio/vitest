@@ -1027,6 +1027,9 @@ importers:
       '@bcoe/v8-coverage':
         specifier: ^0.2.3
         version: 0.2.3
+      '@jridgewell/trace-mapping':
+        specifier: ^0.3.22
+        version: 0.3.23
       debug:
         specifier: ^4.3.4
         version: 4.3.4(supports-color@8.1.1)
@@ -2315,7 +2318,7 @@ packages:
     engines: {node: '>=6.0.0'}
     dependencies:
       '@jridgewell/gen-mapping': 0.3.2
-      '@jridgewell/trace-mapping': 0.3.18
+      '@jridgewell/trace-mapping': 0.3.23
 
   /@antfu/eslint-config@2.6.4(@vue/compiler-sfc@3.4.5)(eslint@8.54.0)(typescript@5.2.2)(vitest@packages+vitest):
     resolution: {integrity: sha512-dMD/QC5KWS1OltdpKLhfZM7W7y7zils85opk8d4lyNr7yn0OFjZs7eMYtcC6DrrN2kQ1JrFvBM7uB0QdWn5PUQ==}

@@ -46,6 +46,7 @@
   "dependencies": {
     "@ampproject/remapping": "^2.2.1",
     "@bcoe/v8-coverage": "^0.2.3",
+    "@jridgewell/trace-mapping": "^0.3.22",
     "debug": "^4.3.4",
     "istanbul-lib-coverage": "^3.2.2",
     "istanbul-lib-report": "^3.0.1",
