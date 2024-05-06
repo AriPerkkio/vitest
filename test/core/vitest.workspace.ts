@@ -12,7 +12,7 @@ function project(pool: Pool) {
 }
 
 export default defineWorkspace([
-  project('threads'),
-  project('forks'),
+  // project('threads'),
+  // project('forks'),
   project('vmThreads'),
 ])
