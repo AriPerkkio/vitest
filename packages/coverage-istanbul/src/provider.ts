@@ -88,14 +88,7 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider implements Co
       ignoreClassMethods: this.options.ignoreClassMethods,
     })
 
-    this.testExclude = new _TestExclude({
-      cwd: ctx.config.root,
-      include: typeof this.options.include === 'undefined' ? undefined : [...this.options.include],
-      exclude: [...defaultExclude, ...defaultInclude, ...this.options.exclude],
-      excludeNodeModules: true,
-      extension: this.options.extension,
-      relativePath: !this.options.allowExternal,
-    })
+    this.testExclude = this.createTestExclude(ctx.config.root)
 
     const shard = this.ctx.config.shard
     const tempDirectory = `.tmp${shard ? `-${shard.index}-${shard.count}` : ''}`
@@ -286,6 +279,11 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider implements Co
     const allFiles = await this.testExclude.glob(this.ctx.config.root)
     let includedFiles = allFiles.map(file => resolve(this.ctx.config.root, file))
 
+    const projects = this.ctx.projects.map(project => ({
+      testExclude: this.createTestExclude(project.config.root),
+      vitenode: project.vitenode,
+    }))
+
     if (this.ctx.config.changed)
       includedFiles = (this.ctx.config.related || []).filter(file => includedFiles.includes(file))
 
@@ -300,13 +298,27 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider implements Co
     for (const [index, filename] of uncoveredFiles.entries()) {
       debug('Uncovered file %s %d/%d', filename, index, uncoveredFiles.length)
 
+      const project = projects.find(p => p.testExclude.shouldInstrument(filename))
+      const vitenode = project?.vitenode || this.ctx.vitenode
+
       // Make sure file is not served from cache so that instrumenter loads up requested file coverage
-      await this.ctx.vitenode.transformRequest(`${filename}?v=${cacheKey}`)
+      await vitenode.transformRequest(`${filename}?v=${cacheKey}`)
       const lastCoverage = this.instrumenter.lastFileCoverage()
       coverageMap.addFileCoverage(lastCoverage)
     }
 
     return coverageMap
+  }
+
+  private createTestExclude(cwd: string) {
+    return new _TestExclude({
+      cwd,
+      include: typeof this.options.include === 'undefined' ? undefined : [...this.options.include],
+      exclude: [...defaultExclude, ...defaultInclude, ...this.options.exclude],
+      excludeNodeModules: true,
+      extension: this.options.extension,
+      relativePath: !this.options.allowExternal,
+    }) as InstanceType<TestExclude>
   }
 }
 
