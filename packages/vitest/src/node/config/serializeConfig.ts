@@ -1,4 +1,5 @@
 import type { ResolvedConfig as ViteConfig } from 'vite'
+import { toArray } from '@vitest/utils'
 import type { ResolvedConfig, SerializedConfig } from '../types/config'
 
 export function serializeConfig(
@@ -46,11 +47,12 @@ export function serializeConfig(
     snapshotEnvironment: config.snapshotEnvironment,
     passWithNoTests: config.passWithNoTests,
     coverage: ((coverage) => {
-      const htmlReporter = coverage.reporter.find(([reporterName]) => reporterName === 'html') as [
+      const htmlReporter = toArray(coverage.reporter).find(([reporterName]) => reporterName === 'html') as [
         'html',
         { subdir?: string },
       ] | undefined
       const subdir = htmlReporter && htmlReporter[1]?.subdir
+
       return {
         reportsDirectory: coverage.reportsDirectory,
         provider: coverage.provider,

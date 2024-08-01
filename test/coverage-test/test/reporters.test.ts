@@ -65,3 +65,22 @@ test('all reporter variants mixed', async () => {
   expect(files).toContain('lcov-report')
   expect(files).toContain('custom-text-report')
 })
+
+test('reporter as string while coverage disabled', async () => {
+  await runVitest({
+    include,
+    coverage: {
+      reporter: 'json',
+      enabled: false,
+    },
+  })
+})
+
+test('reporter as list of strings while coverage disabled', async () => {
+  await runVitest({
+    include,
+    coverage: {
+      reporter: ['json', 'lcov'],
+    },
+  })
+})
