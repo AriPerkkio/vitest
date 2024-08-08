@@ -79,3 +79,17 @@ coverageTest('load file using require so it\'s not intercepted by Vite', () => {
 
   expect(noop).toBeTypeOf('function')
 })
+
+coverageTest('load file both from Vite and outside it', async () => {
+  const entry = createRequire(import.meta.url)('../fixtures/src/cjs-package' as any)
+  const target = await import('../fixtures/src/cjs-package/target.js' as any)
+
+  expect(entry).toBe('Entry here')
+  expect(target.default).toStrictEqual({
+    debug: 0,
+    error: 3,
+    fatal: 4,
+    info: 1,
+    warn: 2,
+  })
+})
