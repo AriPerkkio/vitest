@@ -497,10 +497,10 @@ export class ViteNodeRunner {
 
   protected async runModule(context: Record<string, any>, transformed: string) {
     // add 'use strict' since ESM enables it by default
-    const codeDefinition = `'use strict';async (${Object.keys(context).join(
+    const codeDefinition = `'use strict';async function ViteNodeWrapper(${Object.keys(context).join(
       ',',
-    )})=>{{`
-    const code = `${codeDefinition}${transformed}\n}}`
+    )}){{`
+    const code = `${codeDefinition}${transformed}\n}}\nViteNodeWrapper`
     const options = {
       filename: context.__filename,
       lineOffset: 0,

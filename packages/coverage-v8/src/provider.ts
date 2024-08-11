@@ -65,7 +65,7 @@ type ProjectName =
   | typeof DEFAULT_PROJECT
 
 // TODO: vite-node should export this
-const WRAPPER_LENGTH = 185
+const WRAPPER_LENGTH = 207
 
 // Note that this needs to match the line ending as well
 const VITE_EXPORTS_LINE_PATTERN
@@ -210,6 +210,9 @@ export class V8CoverageProvider extends BaseCoverageProvider implements Coverage
       ) as [AfterSuiteRunMeta['transformMode'], Filename[]][]) {
         let merged: RawCoverage = { result: [] }
 
+        // Coverage of files that were not executed by vite-node, e.g. require()'d ones
+        const loadedOutsideVite: RawCoverage = { result: [] }
+
         for (const chunk of this.toSlices(
           filenames,
           this.options.processingConcurrency,
@@ -223,21 +226,31 @@ export class V8CoverageProvider extends BaseCoverageProvider implements Coverage
             chunk.map(async (filename) => {
               const contents = await fs.readFile(filename, 'utf-8')
               const coverage = JSON.parse(contents) as RawCoverage
-              merged = mergeProcessCovs([merged, coverage])
+              const result = coverage.result.filter((r) => {
+                if (r.functions.some(fn => fn.functionName === 'ViteNodeWrapper')) {
+                  return true
+                }
+                loadedOutsideVite.result.push(r)
+                return false
+              })
+
+              merged = mergeProcessCovs([merged, { result }])
             }),
           )
         }
 
-        const converted = await this.convertCoverage(
-          merged,
-          projectName,
-          transformMode,
-        )
+        for (const [coverage, mode] of [[merged, transformMode], [loadedOutsideVite, 'none']] as const) {
+          const converted = await this.convertCoverage(
+            coverage,
+            projectName,
+            mode,
+          )
 
-        // Source maps can change based on projectName and transform mode.
-        // Coverage transform re-uses source maps so we need to separate transforms from each other.
-        const transformedCoverage = await transformCoverage(converted)
-        coverageMap.merge(transformedCoverage)
+          // Source maps can change based on projectName and transform mode.
+          // Coverage transform re-uses source maps so we need to separate transforms from each other.
+          const transformedCoverage = await transformCoverage(converted)
+          coverageMap.merge(transformedCoverage)
+        }
       }
     }
 
@@ -498,14 +511,18 @@ export class V8CoverageProvider extends BaseCoverageProvider implements Coverage
   private async convertCoverage(
     coverage: RawCoverage,
     projectName?: ProjectName,
-    transformMode?: 'web' | 'ssr',
+    transformMode?: 'web' | 'ssr' | 'none',
   ): Promise<CoverageMap> {
-    const viteNode
-      = this.ctx.projects.find(project => project.getName() === projectName)
-        ?.vitenode || this.ctx.vitenode
-    const fetchCache = transformMode
-      ? viteNode.fetchCaches[transformMode]
-      : viteNode.fetchCache
+    const viteNode = this.ctx.projects.find(project => project.getName() === projectName)?.vitenode || this.ctx.vitenode
+    let fetchCache = viteNode.fetchCache
+
+    if (transformMode === 'none') {
+      fetchCache = new Map()
+    }
+    else if (transformMode) {
+      fetchCache = viteNode.fetchCaches[transformMode]
+    }
+
     const transformResults = normalizeTransformResults(fetchCache)
 
     const scriptCoverages = coverage.result.filter(result =>
