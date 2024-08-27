@@ -60,6 +60,33 @@ export function createBrowserPool(ctx: Vitest): ProcessPool {
 
     const promises: Promise<void>[] = []
 
+    async function setBreakpoint(contextId: string, file: string) {
+      if (!provider.getCDPSession) {
+        throw new Error('Unable to set breakpoint, CDP not supported')
+      }
+
+      const session = await provider.getCDPSession?.(contextId)
+      await session.send('Debugger.enable', {})
+      const parsed: any = await new Promise(resolve => session.on('Debugger.scriptParsed', (script: any) => {
+        if (script.url.includes(file)) {
+          resolve(script)
+        }
+      }))
+      const breakpoints: any = await session.send('Debugger.getPossibleBreakpoints', {
+        start: {
+          scriptId: parsed.scriptId,
+          lineNumber: 0,
+        },
+      })
+      console.log('breakpoints', breakpoints)
+      console.log('parsed', parsed)
+
+      await session.send('Debugger.setBreakpointByUrl', {
+        lineNumber: 0, // breakpoints.locations[0].lineNumber,
+        urlRegex: escapePathToRegexp(parsed.url),
+      })
+    }
+
     chunks.forEach((files, index) => {
       if (orchestrators[index]) {
         const [contextId, orchestrator] = orchestrators[index]
@@ -74,16 +101,23 @@ export function createBrowserPool(ctx: Vitest): ProcessPool {
       }
       else {
         const contextId = crypto.randomUUID()
+
         const waitPromise = waitForTests(method, contextId, project, files)
         debug?.(
           'Opening a new context %s for files: %s',
           contextId,
           [...files.map(f => relative(project.config.root, f))].join(', '),
         )
+
         const url = new URL('/', origin)
         url.searchParams.set('contextId', contextId)
-        const page = provider
-          .openPage(contextId, url.toString())
+
+        const page = provider.openPage(contextId, url.toString())
+          .then(() => {
+            if (project.config.inspector.waitForDebugger) {
+              setBreakpoint(contextId, files[0])
+            }
+          })
           .then(() => waitPromise)
         promises.push(page)
       }
@@ -144,4 +178,15 @@ export function createBrowserPool(ctx: Vitest): ProcessPool {
     runTests: files => runWorkspaceTests('run', files),
     collectTests: files => runWorkspaceTests('collect', files),
   }
+}
+
+function escapePathToRegexp(str: string, except?: string): string {
+  const useRegexChars = '/\\.?*()^${}|[]+'
+    .split('')
+    .filter(c => !except || !except.includes(c))
+    .join('')
+    .replace(/[\\\]]/g, '\\$&')
+
+  const r = new RegExp(`[${useRegexChars}]`, 'g')
+  return str.replace(r, '\\$&')
 }

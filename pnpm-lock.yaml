@@ -1306,7 +1306,7 @@ importers:
         version: 2.4.6
       happy-dom:
         specifier: latest
-        version: 15.0.0
+        version: 15.4.0
       istanbul-lib-coverage:
         specifier: ^3.2.0
         version: 3.2.0
@@ -1328,6 +1328,9 @@ importers:
       vite:
         specifier: ^5.4.0
         version: 5.4.0(@types/node@20.14.15)(terser@5.22.0)
+      vite-plugin-source-map-visualizer:
+        specifier: ^0.1.1
+        version: 0.1.1(vite@5.4.0(@types/node@20.14.15)(terser@5.22.0))
       vitest:
         specifier: workspace:*
         version: link:../../packages/vitest
@@ -1433,7 +1436,7 @@ importers:
         version: 9.3.3
       happy-dom:
         specifier: latest
-        version: 15.0.0
+        version: 15.4.0
       vitest:
         specifier: workspace:*
         version: link:../../packages/vitest
@@ -6217,8 +6220,8 @@ packages:
     resolution: {integrity: sha512-vsYlEs3E9gLwA1Hp+w3qzu+RUDFf4VTT8cyKqVICoZ2k7WM++Qyd2LwzyTi5bqMJFiIC/vNpTDYuxdreENRK/g==}
     engines: {node: '>=16.0.0'}
 
-  happy-dom@15.0.0:
-    resolution: {integrity: sha512-DsvANUcxxY20iCo3Yllm7dqwzPVPduGfVFxa7mONwMBLczFeQgkN0LpDir1kIY322JMh+hrcPV3aGLyHCESDlA==}
+  happy-dom@15.4.0:
+    resolution: {integrity: sha512-XODtsNmhWEFWaUWHH56JLHdsshbyJR5AB5fRtzR0pfDwr9Of3YA20h4D+Gy2trArrEvnZDRjZPyqfU8UGVVU8g==}
     engines: {node: '>=18.0.0'}
 
   has-bigints@1.0.2:
@@ -9107,6 +9110,11 @@ packages:
     resolution: {integrity: sha512-GV2SMLAibOoXe76i02AsjAg7sbm/0lngBlERvJKVN67HOrJsHcWgkt0R6sfGLDJuFkv2aBe14Zm4vJcNME+7zw==}
     peerDependencies:
       solid-js: ^1.7.2
+      vite: ^5.4.0
+
+  vite-plugin-source-map-visualizer@0.1.1:
+    resolution: {integrity: sha512-lSdjUYA3P38vK3uu8C5gvj+kBxiQp9Yh+h+hWD67V+K19AZh9JWf96kTvX2yVrgdNWh56e/EgX5Io/Gn2T8sOA==}
+    peerDependencies:
       vite: ^5.4.0
 
   vite@5.4.0:
@@ -15352,7 +15360,7 @@ snapshots:
       webidl-conversions: 7.0.0
       whatwg-mimetype: 3.0.0
 
-  happy-dom@15.0.0:
+  happy-dom@15.4.0:
     dependencies:
       entities: 4.5.0
       webidl-conversions: 7.0.0
@@ -18613,6 +18621,10 @@ snapshots:
       vitefu: 0.2.4(vite@5.4.0(@types/node@20.14.15)(terser@5.22.0))
     transitivePeerDependencies:
       - supports-color
+
+  vite-plugin-source-map-visualizer@0.1.1(vite@5.4.0(@types/node@20.14.15)(terser@5.22.0)):
+    dependencies:
+      vite: 5.4.0(@types/node@20.14.15)(terser@5.22.0)
 
   vite@5.4.0(@types/node@20.11.5)(terser@5.22.0):
     dependencies:

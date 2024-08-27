@@ -71,6 +71,13 @@ export class PlaywrightBrowserProvider implements BrowserProvider {
         headless: options.headless,
       } satisfies LaunchOptions
 
+      if (this.ctx.config.inspector.enabled) {
+        const port = this.ctx.config.inspector.port || 9229
+        console.log('Enabling inspector on', port)
+        launchOptions.args ||= []
+        launchOptions.args?.push(`--remote-debugging-port=${port}`)
+      }
+
       // start Vitest UI maximized only on supported browsers
       if (this.ctx.config.browser.ui && this.browserName === 'chromium') {
         if (!launchOptions.args) {
@@ -168,6 +175,14 @@ export class PlaywrightBrowserProvider implements BrowserProvider {
         )
       })
     }
+
+    // console.log('Setting breakpoint')
+    // const session = await this.getCDPSession(contextId)
+    // await session.send('Debugger.enable', {})
+    // await session.send('Debugger.setBreakpointByUrl', {
+    //   lineNumber: 0,
+    //   url: 'http://localhost:5173/fixtures/src/math.ts',
+    // })
 
     return page
   }

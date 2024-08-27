@@ -389,6 +389,15 @@ export default (browserServer: BrowserServer, base = '/'): Plugin[] => {
         }
       },
     },
+    {
+      name: 'vitest:browser:debugger',
+      enforce: 'post',
+      transform(code, id) {
+        if (project.ctx.config.inspector.enabled && project.isTestFile(id)) {
+          // umm
+        }
+      },
+    },
   ]
 }
 

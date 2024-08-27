@@ -38,6 +38,58 @@ You can also add a dedicated launch configuration to debug a test file in VS Cod
 
 Then in the debug tab, ensure 'Debug Current Test File' is selected. You can then open the test file you want to debug and press F5 to start debugging.
 
+### Browser mode
+
+To debug [Vitest Browser Mode](/guide/browser/index.md), define `--remote-debugging-port` in your Vitest configuration:
+
+```ts
+import { defineConfig } from 'vitest/config'
+
+export default defineConfig({
+  test: {
+    browser: {
+      name: 'chromium',
+      provider: 'playwright',
+      providerOptions: {
+        launch: {
+          args: ['--remote-debugging-port=9229'],
+        },
+      },
+    },
+  },
+})
+```
+
+Use following [VSCode Compound configuration](https://code.visualstudio.com/docs/editor/debugging#_compound-launch-configurations) for launching Vitest and attaching debugger in the browser:
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run Vitest",
+      "program": "${workspaceRoot}/node_modules/vitest/vitest.mjs",
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "chrome",
+      "request": "attach",
+      "name": "Attach to browser",
+      "port": 9229
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug Vitest Browser",
+      "configurations": ["Attach to browser", "Run Vitest"],
+      "stopAll": true
+    }
+  ]
+}
+```
+
 ## IntelliJ IDEA
 
 Create a 'Node.js' run configuration. Use the following settings to run all tests in debug mode:
