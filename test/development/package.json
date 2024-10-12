@@ -1,0 +1,13 @@
+{
+  "name": "@vitest/test-development",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "vitest": "vitest",
+    "test": "vitest --run",
+    "watch": "vitest --watch"
+  },
+  "devDependencies": {
+    "vitest": "workspace:*"
+  }
+}

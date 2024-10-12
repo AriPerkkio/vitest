@@ -881,8 +881,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0
       tinypool:
-        specifier: ^1.0.0
-        version: 1.0.0
+        specifier: https://pkg.pr.new/tinypool@67f3129
+        version: https://pkg.pr.new/tinypool@67f3129
       tinyrainbow:
         specifier: ^1.2.0
         version: 1.2.0
@@ -1258,6 +1258,12 @@ importers:
       webdriverio:
         specifier: latest
         version: 9.1.2
+
+  test/development:
+    devDependencies:
+      vitest:
+        specifier: workspace:*
+        version: link:../../packages/vitest
 
   test/global-setup:
     devDependencies:
@@ -8794,8 +8800,9 @@ packages:
       picocolors:
         optional: true
 
-  tinypool@1.0.0:
-    resolution: {integrity: sha512-KIKExllK7jp3uvrNtvRBYBWBOAXSX8ZvoaD8T+7KB/QHIuoJW3Pmr60zucywjAlMb5TeXUkcs/MWeWLu0qvuAQ==}
+  tinypool@https://pkg.pr.new/tinypool@67f3129:
+    resolution: {tarball: https://pkg.pr.new/tinypool@67f3129}
+    version: 1.0.1
     engines: {node: ^18.0.0 || >=20.0.0}
 
   tinyrainbow@1.2.0:
@@ -18392,7 +18399,7 @@ snapshots:
     optionalDependencies:
       picocolors: 1.1.0
 
-  tinypool@1.0.0: {}
+  tinypool@https://pkg.pr.new/tinypool@67f3129: {}
 
   tinyrainbow@1.2.0: {}
 
