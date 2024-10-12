@@ -884,8 +884,8 @@ importers:
         specifier: ^0.3.0
         version: 0.3.0
       tinypool:
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: https://pkg.pr.new/tinypool@67f3129
+        version: https://pkg.pr.new/tinypool@67f3129
       tinyrainbow:
         specifier: ^1.2.0
         version: 1.2.0
@@ -1260,6 +1260,12 @@ importers:
         version: 9.2.1
 
   test/dts-fixture:
+    devDependencies:
+      vitest:
+        specifier: workspace:*
+        version: link:../../packages/vitest
+
+  test/development:
     devDependencies:
       vitest:
         specifier: workspace:*
@@ -8621,8 +8627,9 @@ packages:
       picocolors:
         optional: true
 
-  tinypool@1.0.1:
-    resolution: {integrity: sha512-URZYihUbRPcGv95En+sz6MfghfIc2OJ1sv/RmhWZLouPY0/8Vo80viwPvg3dlaS9fuq7fQMEfgRRK7BBZThBEA==}
+  tinypool@https://pkg.pr.new/tinypool@67f3129:
+    resolution: {tarball: https://pkg.pr.new/tinypool@67f3129}
+    version: 1.0.1
     engines: {node: ^18.0.0 || >=20.0.0}
 
   tinyrainbow@1.2.0:
@@ -17927,7 +17934,7 @@ snapshots:
     optionalDependencies:
       picocolors: 1.1.0
 
-  tinypool@1.0.1: {}
+  tinypool@https://pkg.pr.new/tinypool@67f3129: {}
 
   tinyrainbow@1.2.0: {}
 

@@ -9,6 +9,7 @@ import { type JUnitOptions, JUnitReporter } from './junit'
 import { TapFlatReporter } from './tap-flat'
 import { HangingProcessReporter } from './hanging-process'
 import { GithubActionsReporter } from './github-actions'
+import { SomethingNewReporter } from './something-new'
 import type { BaseOptions, BaseReporter } from './base'
 import type { HTMLOptions } from './html'
 import type { BlobOptions } from './blob'
@@ -27,6 +28,7 @@ export {
   TapFlatReporter,
   HangingProcessReporter,
   GithubActionsReporter,
+  SomethingNewReporter,
 }
 export type { BaseReporter, Reporter }
 
@@ -70,6 +72,7 @@ export const ReportersMap = {
   'junit': JUnitReporter,
   'hanging-process': HangingProcessReporter,
   'github-actions': GithubActionsReporter,
+  'something-new': SomethingNewReporter,
 }
 
 export type BuiltinReporters = keyof typeof ReportersMap
@@ -86,6 +89,7 @@ export interface BuiltinReporterOptions {
   'junit': JUnitOptions
   'hanging-process': never
   'html': HTMLOptions
+  'something-new': never
 }
 
 export * from './benchmark'
