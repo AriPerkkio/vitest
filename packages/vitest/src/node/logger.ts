@@ -49,6 +49,8 @@ export class Logger {
     this.logUpdate = createLogUpdate(this.outputStream)
     this._highlights.clear()
     this.registerUnhandledRejection()
+
+    process.once('exit', () => process.exit())
   }
 
   log(...args: any[]) {
