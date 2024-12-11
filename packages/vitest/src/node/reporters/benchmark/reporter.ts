@@ -1,20 +1,27 @@
-import type { Task } from '@vitest/runner'
+import type { File, Task, TaskResultPack } from '@vitest/runner'
 import type { Vitest } from '../../core'
 import fs from 'node:fs'
-import { getFullName } from '@vitest/runner/utils'
+import { getFullName, getTests } from '@vitest/runner/utils'
 import * as pathe from 'pathe'
 import c from 'tinyrainbow'
-import { DefaultReporter } from '../default'
+import { BaseReporter } from '../base'
 import { getStateSymbol } from '../renderers/utils'
+import { WindowRenderer } from '../renderers/windowedRenderer'
+import { TaskParser } from '../task-parser'
 import { createBenchmarkJsonReport, flattenFormattedBenchmarkReport } from './json-formatter'
 import { renderTable } from './tableRender'
 
-export class BenchmarkReporter extends DefaultReporter {
-  protected verbose = true
+export class BenchmarkReporter extends BaseReporter {
+  private summary?: BenchSummary
   compare?: Parameters<typeof renderTable>[0]['compare']
 
   async onInit(ctx: Vitest) {
     super.onInit(ctx)
+
+    if (this.isTTY) {
+      this.summary = new BenchSummary()
+      this.summary.onInit(ctx)
+    }
 
     if (this.ctx.config.benchmark?.compare) {
       const compareFile = pathe.resolve(
@@ -30,6 +37,11 @@ export class BenchmarkReporter extends DefaultReporter {
         this.error(`Failed to read '${compareFile}'`, e)
       }
     }
+  }
+
+  onTaskUpdate(packs: TaskResultPack[]) {
+    this.summary?.onTaskUpdate(packs)
+    super.onTaskUpdate(packs)
   }
 
   printTask(task: Task) {
@@ -78,5 +90,65 @@ export class BenchmarkReporter extends DefaultReporter {
       await fs.promises.writeFile(outputFile, JSON.stringify(output, null, 2))
       this.log(`Benchmark report written to ${outputFile}`)
     }
+  }
+}
+
+class BenchSummary extends TaskParser {
+  private renderer!: WindowRenderer
+  private runningTest?: File
+  private finishedTests: Set<File['id']> = new Set()
+
+  onInit(ctx: Vitest): void {
+    this.ctx = ctx
+
+    this.renderer = new WindowRenderer({
+      logger: ctx.logger,
+      getWindow: () => this.createSummary(),
+      interval: 50,
+    })
+
+    this.ctx.onClose(() => this.renderer.stop())
+  }
+
+  onTestFilePrepare(file: File) {
+    if (this.finishedTests.has(file.id)) {
+      return
+    }
+
+    this.runningTest = file
+  }
+
+  onTestFileFinished(file: File) {
+    this.finishedTests.add(file.id)
+    this.runningTest = undefined
+  }
+
+  createSummary() {
+    if (!this.runningTest) {
+      return ['']
+    }
+
+    const tasks = getTests(this.runningTest)
+    const duration = this.runningTest.result?.duration
+
+    let title = ` ${getStateSymbol(this.runningTest)} ${getFullName(this.runningTest, c.dim(' > '))}`
+
+    if (duration != null && duration > this.ctx.config.slowTestThreshold) {
+      title += c.yellow(` ${Math.round(duration)}${c.dim('ms')}`)
+    }
+
+    return [
+      '',
+      title,
+      ...renderTable({
+        tasks,
+        level: 1,
+        shallow: true,
+        columns: this.ctx.logger.getColumns(),
+        showHeap: this.ctx.config.logHeapUsage,
+        slowTestThreshold: this.ctx.config.slowTestThreshold,
+      }).split('\n'),
+      '',
+    ]
   }
 }

@@ -311,6 +311,10 @@ export class Logger {
     return 'columns' in this.outputStream ? this.outputStream.columns : 80
   }
 
+  getRows() {
+    return 'rows' in this.outputStream ? this.outputStream.rows : 80
+  }
+
   onTerminalCleanup(listener: Listener) {
     this.cleanupListeners.push(listener)
   }

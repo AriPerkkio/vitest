@@ -111,8 +111,7 @@ export class WindowRenderer {
       return this.write(message || '', type)
     }
 
-    const windowContent = this.options.getWindow()
-    const rowCount = getRenderedRowCount(windowContent, this.options.logger.getColumns())
+    const [rowCount, windowContent] = fitToTerminalHeight(this.options.getWindow(), this.options.logger.getColumns(), this.options.logger.getRows())
     let padding = this.windowHeight - rowCount
 
     if (padding > 0 && message) {
@@ -174,6 +173,25 @@ export class WindowRenderer {
   private write(message: string, type: 'output' | 'error' = 'output') {
     (this.streams[type] as Writable['write'])(message)
   }
+}
+
+function fitToTerminalHeight(rows: string[], width: number, height: number): [number, string[]] {
+  let rowCount = 0
+  let index = 0
+
+  for (const row of rows) {
+    const text = stripVTControlCharacters(row)
+    const rowHeight = Math.max(1, Math.ceil(text.length / width))
+    rowCount += rowHeight
+
+    if (rowCount > height) {
+      return [rowCount - rowHeight, rows.slice(0, index)]
+    }
+
+    index++
+  }
+
+  return [rowCount, rows]
 }
 
 /** Calculate the actual row count needed to render `rows` into `stream` */
