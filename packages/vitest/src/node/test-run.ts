@@ -3,7 +3,7 @@ import type { SerializedError } from '../public/utils'
 import type { UserConsoleLog } from '../types/general'
 import type { Vitest } from './core'
 import type { TestProject } from './project'
-import type { ReportedHookContext, TestCollection, TestModule } from './reporters/reported-tasks'
+import type { ReportedHookContext, TestCase, TestCollection, TestModule, TestSuite } from './reporters/reported-tasks'
 import type { TestSpecification } from './spec'
 import assert from 'node:assert'
 import { serializeError } from '@vitest/utils/error'
@@ -11,7 +11,20 @@ import { serializeError } from '@vitest/utils/error'
 export class TestRun {
   constructor(private vitest: Vitest) {}
 
+  statistics = {
+    tests: createStatistics(),
+    suites: createStatistics(),
+    modules: createStatistics(),
+  }
+
   async start(specifications: TestSpecification[]) {
+    this.statistics = {
+      tests: createStatistics(),
+      suites: createStatistics(),
+      modules: createStatistics(),
+    }
+    this.statistics.modules.total = specifications.length
+
     await this.vitest.report('onTestRunStart', [...specifications])
   }
 
@@ -84,6 +97,7 @@ export class TestRun {
     assert(task && entity, `Entity must be found for task ${task?.name || id}`)
 
     if (event === 'suite-prepare' && entity.type === 'suite') {
+      this.statistics.suites.total++
       return await this.vitest.report('onTestSuiteReady', entity)
     }
 
@@ -94,7 +108,9 @@ export class TestRun {
     if (event === 'suite-finished') {
       assert(entity.type === 'suite' || entity.type === 'module', 'Entity type must be suite or module')
 
-      if (entity.state() === 'skipped') {
+      const state = entity.state()
+
+      if (state === 'skipped') {
         // everything inside suite or a module is skipped,
         // so we won't get any children events
         // we need to report everything manually
@@ -119,15 +135,20 @@ export class TestRun {
         await this.vitest.report('onTestSuiteResult', entity)
       }
 
+      updateStats(entity.type === 'module' ? this.statistics.modules : this.statistics.suites, entity)
       return
     }
 
     if (event === 'test-prepare' && entity.type === 'test') {
+      this.statistics.tests.total++
       return await this.vitest.report('onTestCaseReady', entity)
     }
 
     if (event === 'test-finished' && entity.type === 'test') {
-      return await this.vitest.report('onTestCaseResult', entity)
+      await this.vitest.report('onTestCaseResult', entity)
+      updateStats(this.statistics.tests, entity)
+
+      return
     }
 
     if (event.startsWith('before-hook') || event.startsWith('after-hook')) {
@@ -157,12 +178,56 @@ export class TestRun {
       if (child.type === 'test') {
         await this.vitest.report('onTestCaseReady', child)
         await this.vitest.report('onTestCaseResult', child)
+        updateStats(this.statistics.tests, child)
       }
       else {
         await this.vitest.report('onTestSuiteReady', child)
         await this.reportChildren(child.children)
         await this.vitest.report('onTestSuiteResult', child)
+        updateStats(this.statistics.suites, child)
       }
     }
   }
+}
+
+function createStatistics() {
+  return {
+    total: 0,
+    completed: 0,
+    passed: 0,
+    failed: 0,
+    skipped: 0,
+    todo: 0,
+  }
+}
+
+function updateStats(totals: TestSuiteStatistics, entity: TestCase | TestSuite | TestModule) {
+  const state = entity.type === 'test' ? entity.result().state : entity.state()
+
+  totals.completed++
+
+  if (entity.task.mode === 'todo') {
+    return totals.todo++
+  }
+
+  if (state === 'passed') {
+    return totals.passed++
+  }
+
+  if (state === 'failed') {
+    return totals.failed++
+  }
+
+  if (state === 'skipped') {
+    return totals.skipped++
+  }
+}
+
+interface TestSuiteStatistics {
+  total: number
+  completed: number
+  passed: number
+  failed: number
+  skipped: number
+  todo: number
 }

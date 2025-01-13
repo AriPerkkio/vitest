@@ -72,8 +72,6 @@ export class DefaultReporter extends BaseReporter {
         this.renderSucceed = paths.length <= 1
       }
     }
-
-    this.summary?.onPathsCollected(paths)
   }
 
   onWatcherRerun(files: string[], trigger?: string) {

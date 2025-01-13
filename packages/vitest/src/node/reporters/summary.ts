@@ -13,15 +13,6 @@ interface Options {
   verbose?: boolean
 }
 
-interface Counter {
-  total: number
-  completed: number
-  passed: number
-  failed: number
-  skipped: number
-  todo: number
-}
-
 interface SlowTask {
   name: string
   visible: boolean
@@ -30,11 +21,13 @@ interface SlowTask {
   hook?: Omit<SlowTask, 'hook'>
 }
 
-interface RunningModule extends Pick<Counter, 'total' | 'completed'> {
+interface RunningModule {
   filename: TestModule['task']['name']
   projectName: TestModule['project']['name']
   hook?: Omit<SlowTask, 'hook'>
   tests: Map<TestCase['id'], SlowTask>
+  total: number
+  completed: number
 }
 
 /**
@@ -46,8 +39,6 @@ export class SummaryReporter implements Reporter {
   private options!: Options
   private renderer!: WindowRenderer
 
-  private modules = emptyCounters()
-  private tests = emptyCounters()
   private maxParallelTests = 0
 
   /** Currently running test modules, may include finished test modules too */
@@ -82,15 +73,9 @@ export class SummaryReporter implements Reporter {
     })
   }
 
-  onPathsCollected(paths?: string[]) {
-    this.modules.total = (paths || []).length
-  }
-
   onWatcherRerun() {
     this.runningModules.clear()
     this.finishedModules.clear()
-    this.modules = emptyCounters()
-    this.tests = emptyCounters()
 
     this.startTimers()
     this.renderer.start()
@@ -122,7 +107,6 @@ export class SummaryReporter implements Reporter {
     }
 
     const total = Array.from(module.children.allTests()).length
-    this.tests.total += total
     stats.total = total
 
     this.maxParallelTests = Math.max(this.maxParallelTests, this.runningModules.size)
@@ -204,37 +188,10 @@ export class SummaryReporter implements Reporter {
     stats.tests.delete(test.id)
 
     stats.completed++
-    const result = test.result()
-
-    if (result?.state === 'passed') {
-      this.tests.passed++
-    }
-    else if (result?.state === 'failed') {
-      this.tests.failed++
-    }
-    else if (!result?.state || result?.state === 'skipped') {
-      this.tests.skipped++
-    }
   }
 
   onTestModuleEnd(module: TestModule) {
-    const state = module.state()
-    this.modules.completed++
-
-    if (state === 'passed') {
-      this.modules.passed++
-    }
-    else if (state === 'failed') {
-      this.modules.failed++
-    }
-    else if (module.task.mode === 'todo' && state === 'skipped') {
-      this.modules.todo++
-    }
-    else if (state === 'skipped') {
-      this.modules.skipped++
-    }
-
-    const left = this.modules.total - this.modules.completed
+    const left = this.ctx._testRun.statistics.modules.total - this.ctx._testRun.statistics.modules.completed
 
     // Keep finished tests visible in summary for a while if there are more tests left.
     // When a new test starts in onTestModuleQueued it will take this ones place.
@@ -305,8 +262,8 @@ export class SummaryReporter implements Reporter {
       summary.push('')
     }
 
-    summary.push(padSummaryTitle('Test Files') + getStateString(this.modules))
-    summary.push(padSummaryTitle('Tests') + getStateString(this.tests))
+    summary.push(padSummaryTitle('Test Files') + getStateString(this.ctx._testRun.statistics.modules))
+    summary.push(padSummaryTitle('Tests') + getStateString(this.ctx._testRun.statistics.tests))
     summary.push(padSummaryTitle('Start at') + this.startTime)
     summary.push(padSummaryTitle('Duration') + formatTime(this.duration))
 
@@ -341,11 +298,7 @@ export class SummaryReporter implements Reporter {
   }
 }
 
-function emptyCounters(): Counter {
-  return { completed: 0, passed: 0, failed: 0, skipped: 0, todo: 0, total: 0 }
-}
-
-function getStateString(entry: Counter) {
+function getStateString(entry: Vitest['_testRun']['statistics']['modules']) {
   return (
     [
       entry.failed ? c.bold(c.red(`${entry.failed} failed`)) : null,
