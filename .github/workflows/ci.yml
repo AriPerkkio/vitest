@@ -25,8 +25,8 @@ env:
 jobs:
   lint:
     timeout-minutes: 10
-    runs-on: ubuntu-latest
-    name: 'Lint: node-latest, ubuntu-latest'
+    runs-on: ubuntu-22.04-arm
+    name: 'Lint: node-latest, ubuntu-22.04-arm'
     steps:
       - uses: actions/checkout@v4
 
@@ -55,8 +55,8 @@ jobs:
           ./actionlint -color -shellcheck=""
 
   changed:
-    runs-on: ubuntu-latest
-    name: 'Diff: node-latest, ubuntu-latest'
+    runs-on: ubuntu-22.04-arm
+    name: 'Diff: node-latest, ubuntu-22.04-arm'
     outputs:
       should_skip: ${{ steps.changed-files.outputs.only_changed == 'true' }}
 
@@ -83,7 +83,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest]
+        os: [ubuntu-22.04-arm]
         node_version: [18, 20, 22]
         include:
           - os: macos-latest
