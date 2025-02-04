@@ -223,9 +223,16 @@ export function formatProjectName(name: string | undefined, suffix = ' ') {
     .split('')
     .reduce((acc, v, idx) => acc + v.charCodeAt(0) + idx, 0)
 
-  const colors = [c.black, c.yellow, c.cyan, c.green, c.magenta]
+  const colors = [
+    [c.white, c.bgBlack],
+    [c.black, c.bgYellow],
+    [c.black, c.bgCyan],
+    [c.black, c.bgMagenta],
+  ]
 
-  return c.inverse(colors[index % colors.length](` ${name} `)) + suffix
+  const [text, background] = colors[index % colors.length]
+
+  return background(` ${text(name)} `) + suffix
 }
 
 export function withLabel(color: 'red' | 'green' | 'blue' | 'cyan' | 'yellow', label: string, message?: string) {
