@@ -277,14 +277,6 @@ export class V8CoverageProvider extends BaseCoverageProvider<ResolvedCoverageOpt
       }
     }
 
-    const sources = (map.sources || [])
-      .filter(source => source != null)
-      .map(source => new URL(source, url).href)
-
-    if (sources.length === 0) {
-      sources.push(url)
-    }
-
     return {
       originalSource: sourcesContent[0],
       source: code || sourcesContent[0],
@@ -292,7 +284,6 @@ export class V8CoverageProvider extends BaseCoverageProvider<ResolvedCoverageOpt
         sourcemap: excludeGeneratedCode(code, {
           ...map,
           version: 3,
-          sources,
           sourcesContent,
         }),
       },
