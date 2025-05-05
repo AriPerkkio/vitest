@@ -1,5 +1,6 @@
-import type { CoverageProviderModule, ResolvedCoverageOptions, Vitest } from 'vitest'
+import type { ResolvedCoverageOptions, Vitest } from 'vitest'
 import type { defineConfig } from 'vitest/config'
+import type { CoverageProvider } from 'vitest/node'
 import { assertType, test } from 'vitest'
 
 type NarrowToTestConfig<T> = T extends { test?: any } ? NonNullable<T['test']> : never
@@ -109,38 +110,30 @@ test('provider specific options, custom', () => {
 })
 
 test('provider module', () => {
-  assertType<CoverageProviderModule>({
-    getProvider() {
+  assertType<CoverageProvider>({
+    name: 'custom-provider',
+    initialize(_: Vitest) {},
+    generateCoverage() {},
+    resolveOptions(): ResolvedCoverageOptions {
       return {
-        name: 'custom-provider',
-        initialize(_: Vitest) {},
-        generateCoverage() {},
-        resolveOptions(): ResolvedCoverageOptions {
-          return {
-            clean: true,
-            cleanOnRerun: true,
-            enabled: true,
-            exclude: ['string'],
-            extension: ['string'],
-            reporter: [['html', {}], ['json', { file: 'string' }]],
-            reportsDirectory: 'string',
-            reportOnFailure: true,
-            allowExternal: true,
-            processingConcurrency: 1,
-          }
-        },
-        clean(_?: boolean) {},
-        onBeforeFilesRun() {},
-        onAfterSuiteRun({ coverage: _coverage }) {},
-        reportCoverage() {},
-        onFileTransform(_code: string, _id: string, ctx) {
-          ctx.getCombinedSourcemap()
-        },
+        clean: true,
+        cleanOnRerun: true,
+        enabled: true,
+        exclude: ['string'],
+        extension: ['string'],
+        reporter: [['html', {}], ['json', { file: 'string' }]],
+        reportsDirectory: 'string',
+        reportOnFailure: true,
+        allowExternal: true,
+        processingConcurrency: 1,
       }
     },
-    takeCoverage() {},
-    startCoverage() {},
-    stopCoverage() {},
+    clean(_?: boolean) {},
+    onAfterSuiteRun({ coverage: _coverage }) {},
+    reportCoverage() {},
+    onFileTransform(_code: string, _id: string, ctx) {
+      ctx.getCombinedSourcemap()
+    },
   })
 })
 

@@ -4,6 +4,7 @@ import type { Profiler } from 'node:inspector'
 import type { EncodedSourceMap, FetchResult } from 'vite-node'
 import type { AfterSuiteRunMeta } from 'vitest'
 import type { CoverageProvider, ReportContext, ResolvedCoverageOptions, TestProject, Vitest } from 'vitest/node'
+import type { ScriptCoverageWithOffset } from './types'
 import { promises as fs } from 'node:fs'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import remapping from '@ampproject/remapping'
@@ -22,15 +23,11 @@ import { provider } from 'std-env'
 import TestExclude from 'test-exclude'
 import c from 'tinyrainbow'
 import v8ToIstanbul from 'v8-to-istanbul'
-import { cleanUrl } from 'vite-node/utils'
 
+import { cleanUrl } from 'vite-node/utils'
 import { BaseCoverageProvider } from 'vitest/coverage'
 import { parseAstAsync } from 'vitest/node'
 import { version } from '../package.json' with { type: 'json' }
-
-export interface ScriptCoverageWithOffset extends Profiler.ScriptCoverage {
-  startOffset: number
-}
 
 type TransformResults = Map<string, FetchResult>
 interface RawCoverage { result: ScriptCoverageWithOffset[] }
@@ -44,7 +41,7 @@ const FILE_PROTOCOL = 'file://'
 
 const debug = createDebug('vitest:coverage')
 
-export class V8CoverageProvider extends BaseCoverageProvider<ResolvedCoverageOptions<'v8'>> implements CoverageProvider {
+export default class V8CoverageProvider extends BaseCoverageProvider<ResolvedCoverageOptions<'v8'>> implements CoverageProvider {
   name = 'v8' as const
   version: string = version
   testExclude!: InstanceType<typeof TestExclude>

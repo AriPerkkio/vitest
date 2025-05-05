@@ -22,7 +22,7 @@ import { COVERAGE_STORE_KEY } from './constants'
 
 const debug = createDebug('vitest:coverage')
 
-export class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCoverageOptions<'istanbul'>> implements CoverageProvider {
+export default class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCoverageOptions<'istanbul'>> implements CoverageProvider {
   name = 'istanbul' as const
   version: string = version
   instrumenter!: Instrumenter

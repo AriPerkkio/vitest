@@ -1,32 +1,12 @@
 import type { ModuleExecutionInfo } from 'vite-node/client'
+import type { CoverageProvider } from '../node/types/coverage'
 import type { SerializedCoverageConfig } from '../runtime/config'
+import type { CoverageRuntime } from '../types/coverage-runtime'
 
 export interface RuntimeCoverageModuleLoader {
-  executeId: (id: string) => Promise<{ default: RuntimeCoverageProviderModule }>
+  executeId: (id: string) => Promise<{ default: { new(): CoverageProvider } | CoverageRuntime }>
   isBrowser?: boolean
   moduleExecutionInfo?: ModuleExecutionInfo
-}
-
-export interface RuntimeCoverageProviderModule {
-  /**
-   * Factory for creating a new coverage provider
-   */
-  getProvider: () => any // not needed for runtime
-
-  /**
-   * Executed before tests are run in the worker thread.
-   */
-  startCoverage?: (runtimeOptions: { isolate: boolean }) => unknown | Promise<unknown>
-
-  /**
-   * Executed on after each run in the worker thread. Possible to return a payload passed to the provider
-   */
-  takeCoverage?: (runtimeOptions?: { moduleExecutionInfo?: ModuleExecutionInfo }) => unknown | Promise<unknown>
-
-  /**
-   * Executed after all tests have been run in the worker thread.
-   */
-  stopCoverage?: (runtimeOptions: { isolate: boolean }) => unknown | Promise<unknown>
 }
 
 export const CoverageProviderMap: Record<string, string> = {
@@ -34,10 +14,27 @@ export const CoverageProviderMap: Record<string, string> = {
   istanbul: '@vitest/coverage-istanbul',
 }
 
-export async function resolveCoverageProviderModule(
+export async function resolveCoverageProvider(
   options: SerializedCoverageConfig | undefined,
   loader: RuntimeCoverageModuleLoader,
-): Promise<RuntimeCoverageProviderModule | null> {
+): Promise<{ new(): CoverageProvider } | null> {
+  return resolveCoverageModule(options, loader, '/provider')
+}
+
+export async function resolveCoverageRuntime(
+  options: SerializedCoverageConfig | undefined,
+  loader: RuntimeCoverageModuleLoader,
+): Promise<CoverageRuntime | null> {
+  return resolveCoverageModule(options, loader)
+}
+
+async function resolveCoverageModule(options: SerializedCoverageConfig | undefined, loader: RuntimeCoverageModuleLoader, entrypoint: '/provider'): Promise<{ new(): CoverageProvider } | null>
+async function resolveCoverageModule(options: SerializedCoverageConfig | undefined, loader: RuntimeCoverageModuleLoader): Promise<CoverageRuntime | null>
+async function resolveCoverageModule(
+  options: SerializedCoverageConfig | undefined,
+  loader: RuntimeCoverageModuleLoader,
+  entrypoint?: '/provider',
+) {
   if (!options?.enabled || !options.provider) {
     return null
   }
@@ -45,17 +42,13 @@ export async function resolveCoverageProviderModule(
   const provider = options.provider
 
   if (provider === 'v8' || provider === 'istanbul') {
-    let builtInModule = CoverageProviderMap[provider]
+    const builtInModule = CoverageProviderMap[provider]
 
-    if (provider === 'v8' && loader.isBrowser) {
-      builtInModule += '/browser'
-    }
-
-    const { default: coverageModule } = await loader.executeId(builtInModule)
+    const { default: coverageModule } = await loader.executeId(`${builtInModule}${entrypoint || ''}`)
 
     if (!coverageModule) {
       throw new Error(
-        `Failed to load ${CoverageProviderMap[provider]}. Default export is missing.`,
+        `Failed to load ${CoverageProviderMap[provider]}${entrypoint || ''}. Default export is missing.`,
       )
     }
 
@@ -65,18 +58,18 @@ export async function resolveCoverageProviderModule(
   let customProviderModule
 
   try {
-    customProviderModule = await loader.executeId(options.customProviderModule!)
+    customProviderModule = await loader.executeId(`${options.customProviderModule}${entrypoint || ''}`)
   }
   catch (error) {
     throw new Error(
-      `Failed to load custom CoverageProviderModule from ${options.customProviderModule}`,
+      `Failed to load custom coverage ${entrypoint} from ${options.customProviderModule}${entrypoint || ''}`,
       { cause: error },
     )
   }
 
   if (customProviderModule.default == null) {
     throw new Error(
-      `Custom CoverageProviderModule loaded from ${options.customProviderModule} was not the default export`,
+      `Custom coverage ${entrypoint} loaded from ${options.customProviderModule}${entrypoint || ''} was not the default export`,
     )
   }
 

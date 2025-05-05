@@ -1,12 +1,9 @@
 import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { normalize, resolve, sep } from 'node:path'
-import type { AfterSuiteRunMeta, CoverageProvider, CoverageProviderModule, ReportContext, ResolvedCoverageOptions, Vitest } from 'vitest'
+import type { AfterSuiteRunMeta, CoverageProvider,  ReportContext, ResolvedCoverageOptions, Vitest } from 'vitest'
+import type { CoverageRuntime } from 'vitest'
 
-const CustomCoverageProviderModule: CoverageProviderModule = {
-  getProvider(): CoverageProvider {
-    return new CustomCoverageProvider()
-  },
-
+const CustomCoverageProviderModule: CoverageRuntime = {
   takeCoverage() {
     // @ts-expect-error -- untyped
     globalThis.CUSTOM_PROVIDER_TAKE_COVERAGE = true

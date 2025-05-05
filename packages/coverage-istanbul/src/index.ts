@@ -1,9 +1,9 @@
 import type { CoverageMapData } from 'istanbul-lib-coverage'
-import type { CoverageProviderModule } from 'vitest/node'
-import type { IstanbulCoverageProvider } from './provider'
+import type { CoverageRuntime } from 'vitest'
+
 import { COVERAGE_STORE_KEY } from './constants'
 
-const mod: CoverageProviderModule = {
+const runtime: CoverageRuntime = {
   takeCoverage() {
     // @ts-expect-error -- untyped global
     return globalThis[COVERAGE_STORE_KEY]
@@ -35,16 +35,6 @@ const mod: CoverageProviderModule = {
       }
     }
   },
-
-  async getProvider(): Promise<IstanbulCoverageProvider> {
-    // to not bundle the provider
-    const providerPath = './provider.js'
-    const { IstanbulCoverageProvider } = (await import(
-      /* @vite-ignore */
-      providerPath
-    )) as typeof import('./provider')
-
-    return new IstanbulCoverageProvider()
-  },
 }
-export default mod
+
+export default runtime

@@ -114,7 +114,6 @@ export type {
   CoverageIstanbulOptions,
   CoverageOptions,
   CoverageProvider,
-  CoverageProviderModule,
   CoverageReporter,
   CoverageV8Options,
   CustomProviderOptions,

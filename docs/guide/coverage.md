@@ -134,6 +134,8 @@ export default defineConfig({
 })
 ```
 
+TODO:
+
 The custom providers require a `customProviderModule` option which is a module name or path where to load the `CoverageProviderModule` from. It must export an object that implements `CoverageProviderModule` as default export:
 
 ```ts [my-custom-coverage-provider.ts]

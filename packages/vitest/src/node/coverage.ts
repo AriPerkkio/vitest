@@ -10,7 +10,7 @@ import { relative, resolve } from 'pathe'
 import c from 'tinyrainbow'
 import { coverageConfigDefaults } from '../defaults'
 import { resolveCoverageReporters } from '../node/config/resolveConfig'
-import { resolveCoverageProviderModule } from '../utils/coverage'
+import { resolveCoverageProvider } from '../utils/coverage'
 
 type Threshold = 'lines' | 'functions' | 'statements' | 'branches'
 
@@ -59,13 +59,13 @@ export async function getCoverageProvider(
   options: SerializedCoverageConfig | undefined,
   loader: CoverageModuleLoader,
 ): Promise<CoverageProvider | null> {
-  const coverageModule = await resolveCoverageProviderModule(options, loader)
+  const Provider = await resolveCoverageProvider(options, loader)
 
-  if (coverageModule) {
-    return coverageModule.getProvider()
+  if (Provider == null) {
+    return null
   }
 
-  return null
+  return new Provider()
 }
 
 export class BaseCoverageProvider<Options extends ResolvedCoverageOptions<'istanbul' | 'v8'>> {

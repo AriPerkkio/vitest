@@ -1,7 +1,7 @@
 import type { ReportOptions } from 'istanbul-reports'
 import type { TransformResult as ViteTransformResult } from 'vite'
 import type { AfterSuiteRunMeta, Arrayable } from '../../types/general'
-import type { RuntimeCoverageModuleLoader, RuntimeCoverageProviderModule } from '../../utils/coverage'
+import type { RuntimeCoverageModuleLoader } from '../../utils/coverage'
 import type { Vitest } from '../core'
 
 type TransformResult =
@@ -59,14 +59,7 @@ export interface ReportContext {
 }
 
 export interface CoverageModuleLoader extends RuntimeCoverageModuleLoader {
-  executeId: (id: string) => Promise<{ default: CoverageProviderModule }>
-}
-
-export interface CoverageProviderModule extends RuntimeCoverageProviderModule {
-  /**
-   * Factory for creating a new coverage provider
-   */
-  getProvider: () => CoverageProvider | Promise<CoverageProvider>
+  executeId: (id: string) => Promise<{ default: { new(): CoverageProvider } }>
 }
 
 export type CoverageReporter = keyof ReportOptions | (string & {})

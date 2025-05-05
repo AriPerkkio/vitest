@@ -1,14 +1,12 @@
-import type { CoverageProviderModule } from 'vitest/node'
-import type { V8CoverageProvider } from './provider'
+import type { CoverageRuntime } from 'vitest'
 import { cdp } from '@vitest/browser/context'
-import { loadProvider } from './load-provider'
 
 const session = cdp()
 let enabled = false
 
 type ScriptCoverage = Awaited<ReturnType<typeof session.send<'Profiler.takePreciseCoverage'>>>
 
-const mod: CoverageProviderModule = {
+const runtime: CoverageRuntime = {
   async startCoverage() {
     if (enabled) {
       return
@@ -17,25 +15,19 @@ const mod: CoverageProviderModule = {
     enabled = true
 
     await session.send('Profiler.enable')
-    await session.send('Profiler.startPreciseCoverage', {
-      callCount: true,
-      detailed: true,
-    })
+    await session.send('Profiler.startPreciseCoverage', { callCount: true, detailed: true })
   },
 
   async takeCoverage(): Promise<{ result: any[] }> {
     const coverage = await session.send('Profiler.takePreciseCoverage')
-    const result: typeof coverage.result = []
 
     // Reduce amount of data sent over rpc by doing some early result filtering
-    for (const entry of coverage.result) {
-      if (filterResult(entry)) {
-        result.push({
-          ...entry,
-          url: decodeURIComponent(entry.url.replace(window.location.origin, '')),
-        })
-      }
-    }
+    const result = coverage.result
+      .filter(filterResult)
+      .map(res => ({
+        ...res,
+        url: decodeURIComponent(res.url.replace(window.location.origin, '')),
+      }))
 
     return { result }
   },
@@ -43,12 +35,9 @@ const mod: CoverageProviderModule = {
   stopCoverage() {
     // Browser mode should not stop coverage as same V8 instance is shared between tests
   },
-
-  async getProvider(): Promise<V8CoverageProvider> {
-    return loadProvider()
-  },
 }
-export default mod
+
+export default runtime
 
 function filterResult(coverage: ScriptCoverage['result'][number]): boolean {
   if (!coverage.url.startsWith(window.location.origin)) {

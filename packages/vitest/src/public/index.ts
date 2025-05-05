@@ -49,7 +49,6 @@ import type {
   CoverageIstanbulOptions as CoverageIstanbulOptions_,
   CoverageOptions as CoverageOptions_,
   CoverageProvider as CoverageProvider_,
-  CoverageProviderModule as CoverageProviderModule_,
   CoverageProviderName,
   CoverageReporter as CoverageReporter_,
   CoverageV8Options as CoverageV8Options_,
@@ -105,15 +104,15 @@ export type {
   WebSocketHandlers,
   WebSocketRPC,
 } from '../api/types'
+
 export { assert, chai, createExpect, expect, should } from '../integrations/chai'
 export { inject } from '../integrations/inject'
 export { isFirstRun, runOnce } from '../integrations/run-once'
-
 export { getRunningMode, isWatchMode } from '../integrations/utils'
+
 export { vi, vitest } from '../integrations/vi'
 export type { VitestUtils } from '../integrations/vi'
 export { bench } from '../runtime/benchmark'
-
 export type {
   RuntimeConfig,
   SerializedConfig,
@@ -130,7 +129,9 @@ export type {
   BenchTask,
   BenchTaskResult,
 } from '../runtime/types/benchmark'
+
 export { assertType } from '../typecheck/assertType'
+export type { AssertType } from '../typecheck/assertType'
 
 /** @deprecated import `TypeCheckRawErrorsMap` from `vitest/node` instead */
 export type RawErrsMap = RawErrsMap_
@@ -170,16 +171,16 @@ export type RuntimeContext = RuntimeContext_
 /** @deprecated internal type, don't use it */
 export type SuiteHooks = SuiteHooks_
 
-export type { AssertType } from '../typecheck/assertType'
 export { expectTypeOf } from '../typecheck/expectTypeOf'
 export type { ExpectTypeOf } from '../typecheck/expectTypeOf'
+export type { BrowserTesterOptions } from '../types/browser'
 
 /** @deprecated import from `vitest/node` instead */
 export type WorkerContext = WorkerContext_
 /** @deprecated import from `vitest/node` instead */
 export type WorkerRPC = WorkerRPC_
 
-export type { BrowserTesterOptions } from '../types/browser'
+export type { CoverageRuntime } from '../types/coverage-runtime'
 export type {
   AfterSuiteRunMeta,
   ErrorWithDiff,
@@ -224,8 +225,6 @@ export type ResolvedTestEnvironment = ResolvedTestEnvironment_
 export type CoverageProvider = CoverageProvider_
 /** @deprecated import from `vitest/node` instead */
 export type ReportContext = ReportContext_
-/** @deprecated import from `vitest/node` instead */
-export type CoverageProviderModule = CoverageProviderModule_
 /** @deprecated import from `vitest/node` instead */
 export type CoverageReporter = CoverageReporter_
 /** @deprecated import from `vitest/node` instead */
