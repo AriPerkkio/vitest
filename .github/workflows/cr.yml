@@ -14,7 +14,6 @@ concurrency:
 
 jobs:
   release:
-    if: github.repository == 'vitest-dev/vitest' && (github.ref == 'refs/heads/main' || contains(github.event.pull_request.labels.*.name, 'cr-tracked'))
     runs-on: ubuntu-latest
     name: 'Release: pkg.pr.new'
 
@@ -44,4 +43,4 @@ jobs:
           NO_VITE_TEST_WATCHER_DEBUG: '1'
 
       - name: Publish to StackBlitz
-        run: pnpx pkg-pr-new publish --compact --no-template --pnpm './packages/*'
+        run: pnpx pkg-pr-new publish --no-template --pnpm './packages/*'
