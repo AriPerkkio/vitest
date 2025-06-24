@@ -66,7 +66,7 @@ class ReportedTaskImplementation {
    * @internal
    */
   static register(task: RunnerTask, project: TestProject) {
-    const state = new this(task, project) as TestCase | TestSuite | TestModule
+    const state = new this(task, project) as TestEntity
     storeTask(project, task, state)
     return state
   }
@@ -519,6 +519,7 @@ function buildOptions(
 export type TestSuiteState = 'skipped' | 'pending' | 'failed' | 'passed'
 export type TestModuleState = TestSuiteState | 'queued'
 export type TestState = TestResult['state']
+export type TestEntity = TestModule | TestSuite | TestCase
 
 export type TestResult =
   | TestResultPassed
@@ -646,7 +647,7 @@ export interface ModuleDiagnostic {
 function storeTask(
   project: TestProject,
   runnerTask: RunnerTask,
-  reportedTask: TestCase | TestSuite | TestModule,
+  reportedTask: TestEntity,
 ): void {
   project.vitest.state.reportedTasksMap.set(runnerTask, reportedTask)
 }
@@ -654,7 +655,7 @@ function storeTask(
 function getReportedTask(
   project: TestProject,
   runnerTask: RunnerTask,
-): TestCase | TestSuite | TestModule {
+): TestEntity {
   const reportedTask = project.vitest.state.getReportedEntity(runnerTask)
   if (!reportedTask) {
     throw new Error(

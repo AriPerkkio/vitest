@@ -1,5 +1,8 @@
 import type { File, TaskEventPack, TaskResultPack, TestAnnotation } from '@vitest/runner'
+import type { SerializedError } from '@vitest/utils'
 import type { BirpcReturn } from 'birpc'
+import type { TestModule } from '../node/reporters/reported-tasks'
+import type { TestRunEndReason } from '../node/types/reporter'
 import type { SerializedConfig } from '../runtime/config'
 import type { SerializedTestSpecification } from '../runtime/types/utils'
 import type { Awaitable, LabelColor, ModuleGraphData, UserConsoleLog } from '../types/general'
@@ -53,11 +56,7 @@ export interface WebSocketHandlers {
 
 export interface WebSocketEvents {
   onCollected?: (files?: File[]) => Awaitable<void>
-  onFinished?: (
-    files: File[],
-    errors: unknown[],
-    coverage?: unknown
-  ) => Awaitable<void>
+  onTestRunEnd?: (testModules: ReadonlyArray<TestModule>, unhandledErrors: ReadonlyArray<SerializedError>, reason: TestRunEndReason) => Awaitable<void>
   onTestAnnotate?: (testId: string, annotation: TestAnnotation) => Awaitable<void>
   onTaskUpdate?: (packs: TaskResultPack[], events: TaskEventPack[]) => Awaitable<void>
   onUserConsoleLog?: (log: UserConsoleLog) => Awaitable<void>

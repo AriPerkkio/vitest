@@ -1,10 +1,11 @@
 import type { File, Task } from '@vitest/runner'
+import type { SerializedError } from '@vitest/utils'
 import type { TestError, UserConsoleLog } from '../../types/general'
 import type { Vitest } from '../core'
-import type { Reporter } from '../types/reporter'
-import type { TestCase, TestCollection, TestModule, TestModuleState, TestResult, TestSuite, TestSuiteState } from './reported-tasks'
+import type { Reporter, TestRunEndReason } from '../types/reporter'
+import type { TestCase, TestCollection, TestEntity, TestModule, TestModuleState, TestResult, TestSuite, TestSuiteState } from './reported-tasks'
 import { performance } from 'node:perf_hooks'
-import { getFullName, getSuites, getTestName, getTests, hasFailed } from '@vitest/runner/utils'
+import { getFullName, getTestName, hasFailed } from '@vitest/runner/utils'
 import { toArray } from '@vitest/utils'
 import { parseStacktrace } from '@vitest/utils/source-map'
 import { relative } from 'pathe'
@@ -57,13 +58,17 @@ export abstract class BaseReporter implements Reporter {
     return relative(this.ctx.config.root, path)
   }
 
-  onFinished(files: File[] = this.ctx.state.getFiles(), errors: unknown[] = this.ctx.state.getUnhandledErrors()): void {
+  onTestRunEnd(
+    testModules: ReadonlyArray<TestModule>,
+    unhandledErrors: ReadonlyArray<SerializedError>,
+    _reason: TestRunEndReason,
+  ): void {
     this.end = performance.now()
-    if (!files.length && !errors.length) {
+    if (!testModules.length && !unhandledErrors.length) {
       this.ctx.logger.printNoTestFound(this.ctx.filenamePattern)
     }
     else {
-      this.reportSummary(files, errors)
+      this.reportSummary(testModules, unhandledErrors)
     }
   }
 
@@ -452,25 +457,28 @@ export abstract class BaseReporter implements Reporter {
     )))
   }
 
-  reportSummary(files: File[], errors: unknown[]): void {
-    this.printErrorsSummary(files, errors)
+  reportSummary(
+    testModules: ReadonlyArray<TestModule>,
+    unhandledErrors: ReadonlyArray<SerializedError>,
+  ): void {
+    this.printErrorsSummary(testModules, unhandledErrors)
 
     if (this.ctx.config.mode === 'benchmark') {
-      this.reportBenchmarkSummary(files)
+      this.reportBenchmarkSummary(testModules)
     }
     else {
-      this.reportTestSummary(files, errors)
+      this.reportTestSummary(testModules, unhandledErrors)
     }
   }
 
-  reportTestSummary(files: File[], errors: unknown[]): void {
+  reportTestSummary(testModules: ReadonlyArray<TestModule>, unhandledErrors: ReadonlyArray<SerializedError>): void {
     this.log()
 
-    const affectedFiles = [
-      ...this.failedUnwatchedFiles.map(m => m.task),
-      ...files,
+    const affectedTestModules = [
+      ...this.failedUnwatchedFiles,
+      ...testModules,
     ]
-    const tests = getTests(affectedFiles)
+    const tests = affectedTestModules.flatMap(i => Array.from(i.children.allTests()))
 
     const snapshotOutput = renderSnapshotSummary(
       this.ctx.config.root,
@@ -486,11 +494,11 @@ export abstract class BaseReporter implements Reporter {
       this.log()
     }
 
-    this.log(padSummaryTitle('Test Files'), getStateString(affectedFiles))
+    this.log(padSummaryTitle('Test Files'), getStateString(affectedTestModules))
     this.log(padSummaryTitle('Tests'), getStateString(tests))
 
     if (this.ctx.projects.some(c => c.config.typecheck.enabled)) {
-      const failed = tests.filter(t => t.meta?.typecheck && t.result?.errors?.length)
+      const failed = tests.filter(t => t.meta().typecheck && t.result().errors?.length)
 
       this.log(
         padSummaryTitle('Type Errors'),
@@ -500,18 +508,18 @@ export abstract class BaseReporter implements Reporter {
       )
     }
 
-    if (errors.length) {
+    if (unhandledErrors.length) {
       this.log(
         padSummaryTitle('Errors'),
-        c.bold(c.red(`${errors.length} error${errors.length > 1 ? 's' : ''}`)),
+        c.bold(c.red(`${unhandledErrors.length} error${unhandledErrors.length > 1 ? 's' : ''}`)),
       )
     }
 
     this.log(padSummaryTitle('Start at'), this._timeStart)
 
-    const collectTime = sum(files, file => file.collectDuration)
-    const testsTime = sum(files, file => file.result?.duration)
-    const setupTime = sum(files, file => file.setupDuration)
+    const collectTime = sum(testModules, t => t.diagnostic().collectDuration)
+    const testsTime = sum(testModules, t => t.diagnostic().duration)
+    const setupTime = sum(testModules, t => t.diagnostic().setupDuration)
 
     if (this.watchFilters) {
       this.log(padSummaryTitle('Duration'), formatTime(collectTime + testsTime + setupTime))
@@ -522,8 +530,8 @@ export abstract class BaseReporter implements Reporter {
       // Execution time is either sum of all runs of `--merge-reports` or the current run's time
       const executionTime = blobs?.executionTimes ? sum(blobs.executionTimes, time => time) : this.end - this.start
 
-      const environmentTime = sum(files, file => file.environmentLoad)
-      const prepareTime = sum(files, file => file.prepareDuration)
+      const environmentTime = sum(testModules, t => t.diagnostic().environmentSetupDuration)
+      const prepareTime = sum(testModules, t => t.diagnostic().prepareDuration)
       const transformTime = sum(this.ctx.projects, project => project.vitenode.getTotalDuration())
       const typecheck = sum(this.ctx.projects, project => project.typechecker?.getResult().time)
 
@@ -547,12 +555,19 @@ export abstract class BaseReporter implements Reporter {
     this.log()
   }
 
-  private printErrorsSummary(files: File[], errors: unknown[]) {
-    const suites = getSuites(files)
-    const tests = getTests(files)
+  private printErrorsSummary(
+    testModules: ReadonlyArray<TestModule>,
+    unhandledErrors: ReadonlyArray<SerializedError>,
+  ) {
+    const suites = [
+      ...testModules.filter(testModule => testModule.errors().length > 0),
+      ...testModules.flatMap(testModule => Array.from(testModule.children.allSuites())),
+    ]
 
-    const failedSuites = suites.filter(i => i.result?.errors)
-    const failedTests = tests.filter(i => i.result?.state === 'fail')
+    const tests = testModules.flatMap(testModule => Array.from(testModule.children.allTests()))
+
+    const failedSuites = suites.filter(i => i.state() === 'failed' || i.errors().length > 0)
+    const failedTests = tests.filter(i => i.result().state === 'failed')
     const failedTotal = countTestErrors(failedSuites) + countTestErrors(failedTests)
 
     let current = 1
@@ -568,14 +583,14 @@ export abstract class BaseReporter implements Reporter {
       this.printTaskErrors(failedTests, errorDivider)
     }
 
-    if (errors.length) {
-      this.ctx.logger.printUnhandledErrors(errors)
+    if (unhandledErrors.length) {
+      this.ctx.logger.printUnhandledErrors(unhandledErrors)
       this.error()
     }
   }
 
-  reportBenchmarkSummary(files: File[]): void {
-    const benches = getTests(files)
+  reportBenchmarkSummary(testModules: ReadonlyArray<TestModule>): void {
+    const benches = testModules.flatMap(t => Array.from(t.children.allTests()).map(t => t.task))
     const topBenches = benches.filter(i => i.result?.benchmark?.rank === 1)
 
     this.log(`\n${withLabel('cyan', 'BENCH', 'Summary\n')}`)
@@ -605,12 +620,14 @@ export abstract class BaseReporter implements Reporter {
     }
   }
 
-  private printTaskErrors(tasks: Task[], errorDivider: () => void) {
-    const errorsQueue: [error: TestError | undefined, tests: Task[]][] = []
+  private printTaskErrors(entities: TestEntity[], errorDivider: () => void) {
+    const errorsQueue: [error: TestError | undefined, tests: TestEntity[]][] = []
 
-    for (const task of tasks) {
+    for (const entity of entities) {
+      const errors = entity.type === 'test' ? entity.result().errors : entity.errors()
+
       // Merge identical errors
-      task.result?.errors?.forEach((error) => {
+      errors?.forEach((error) => {
         let previous
 
         if (error?.stack) {
@@ -619,32 +636,32 @@ export abstract class BaseReporter implements Reporter {
               return false
             }
 
-            const currentProjectName = (task as File)?.projectName || task.file?.projectName || ''
-            const projectName = (i[1][0] as File)?.projectName || i[1][0].file?.projectName || ''
+            const currentProjectName = entity.project.name
+            const projectName = i[1][0].project.name
 
-            const currentAnnotations = task.type === 'test' && task.annotations
-            const itemAnnotations = i[1][0].type === 'test' && i[1][0].annotations
+            const currentAnnotations = entity.type === 'test' && entity.annotations()
+            const itemAnnotations = i[1][0].type === 'test' && i[1][0].annotations()
 
             return projectName === currentProjectName && deepEqual(currentAnnotations, itemAnnotations)
           })
         }
 
         if (previous) {
-          previous[1].push(task)
+          previous[1].push(entity)
         }
         else {
-          errorsQueue.push([error, [task]])
+          errorsQueue.push([error, [entity]])
         }
       })
     }
 
-    for (const [error, tasks] of errorsQueue) {
-      for (const task of tasks) {
-        const filepath = (task as File)?.filepath || ''
-        const projectName = (task as File)?.projectName || task.file?.projectName || ''
+    for (const [error, entities] of errorsQueue) {
+      for (const entity of entities) {
+        const filepath = entity.type === 'module' && entity.moduleId
+        const projectName = entity.project.name || ''
         const project = this.ctx.projects.find(p => p.name === projectName)
 
-        let name = this.getFullName(task, c.dim(' > '))
+        let name = this.getFullName(entity.task, c.dim(' > '))
 
         if (filepath) {
           name += c.dim(` [ ${this.relative(filepath)} ]`)
@@ -655,18 +672,17 @@ export abstract class BaseReporter implements Reporter {
         )
       }
 
-      const screenshotPaths = tasks.map(t => t.meta?.failScreenshotPath).filter(screenshot => screenshot != null)
+      const screenshotPaths = entities.map(t => t.meta().failScreenshotPath).filter(screenshot => screenshot != null)
 
       this.ctx.logger.printError(error, {
-        project: this.ctx.getProjectByName(tasks[0].file.projectName || ''),
+        project: this.ctx.getProjectByName(entities[0].project.name),
         verbose: this.verbose,
         screenshotPaths,
-        task: tasks[0],
+        task: entities[0].task,
       })
 
-      if (tasks[0].type === 'test' && tasks[0].annotations.length) {
-        const test = this.ctx.state.getReportedEntity(tasks[0]) as TestCase
-        this.printAnnotations(test, 'error', 1)
+      if (entities[0].type === 'test' && entities[0].annotations().length) {
+        this.printAnnotations(entities[0], 'error', 1)
         this.error()
       }
 
@@ -697,7 +713,7 @@ function deepEqual(a: any, b: any): boolean {
   return true
 }
 
-function sum<T>(items: T[], cb: (_next: T) => number | undefined) {
+function sum<T>(items: ReadonlyArray<T>, cb: (_next: T) => number | undefined) {
   return items.reduce((total, next) => {
     return total + Math.max(cb(next) || 0, 0)
   }, 0)

@@ -1,10 +1,10 @@
-import type { File, Suite, TaskMeta, TaskState } from '@vitest/runner'
+import type { TaskMeta } from '@vitest/runner'
 import type { SnapshotSummary } from '@vitest/snapshot'
 import type { CoverageMap } from 'istanbul-lib-coverage'
 import type { Vitest } from '../core'
 import type { Reporter } from '../types/reporter'
+import type { TestModule, TestSuite } from './reported-tasks'
 import { existsSync, promises as fs } from 'node:fs'
-import { getSuites, getTests } from '@vitest/runner/utils'
 import { dirname, resolve } from 'pathe'
 import { getOutputFile } from '../../utils/config-helpers'
 
@@ -17,16 +17,6 @@ type Milliseconds = number
 interface Callsite {
   line: number
   column: number
-}
-
-const StatusMap: Record<TaskState, Status> = {
-  fail: 'failed',
-  only: 'pending',
-  pass: 'passed',
-  run: 'pending',
-  skip: 'skipped',
-  todo: 'todo',
-  queued: 'pending',
 }
 
 export interface JsonAssertionResult {
@@ -78,6 +68,7 @@ export class JsonReporter implements Reporter {
   start = 0
   ctx!: Vitest
   options: JsonOptions
+  coverageMap?: CoverageMap
 
   constructor(options: JsonOptions) {
     this.options = options
@@ -86,37 +77,41 @@ export class JsonReporter implements Reporter {
   onInit(ctx: Vitest): void {
     this.ctx = ctx
     this.start = Date.now()
+    this.coverageMap = undefined
   }
 
-  protected async logTasks(files: File[], coverageMap?: CoverageMap | null): Promise<void> {
-    const suites = getSuites(files)
-    const numTotalTestSuites = suites.length
-    const tests = getTests(files)
+  onCoverage(coverageMap: unknown): void {
+    this.coverageMap = coverageMap as CoverageMap
+  }
+
+  async onTestRunEnd(testModules: ReadonlyArray<TestModule>): Promise<void> {
+    const suites = testModules.flatMap(testModule => Array.from(testModule.children.allSuites()))
+    const tests = testModules.flatMap(testModule => Array.from(testModule.children.allTests()))
     const numTotalTests = tests.length
 
-    const numFailedTestSuites = suites.filter(s => s.result?.state === 'fail').length
-    const numPendingTestSuites = suites.filter(
-      s => s.result?.state === 'run' || s.result?.state === 'queued' || s.mode === 'todo',
-    ).length
+    // Test modules are counted as suites
+    const numFailedTestModules = testModules.filter(testModule => testModule.state() === 'failed').length
+    const numPendingTestModules = testModules.filter(testModule => testModule.state() === 'pending').length
+
+    const numTotalTestSuites = suites.length + testModules.length
+    const numFailedTestSuites = numFailedTestModules + suites.filter(s => s.state() === 'failed').length
+    const numPendingTestSuites = numPendingTestModules + suites.filter(s => s.state() === 'pending' || s.state() === 'skipped' || s.options.mode === 'todo').length
     const numPassedTestSuites = numTotalTestSuites - numFailedTestSuites - numPendingTestSuites
 
-    const numFailedTests = tests.filter(
-      t => t.result?.state === 'fail',
-    ).length
-    const numPassedTests = tests.filter(t => t.result?.state === 'pass').length
-    const numPendingTests = tests.filter(
-      t => t.result?.state === 'run' || t.result?.state === 'queued' || t.mode === 'skip' || t.result?.state === 'skip',
-    ).length
-    const numTodoTests = tests.filter(t => t.mode === 'todo').length
+    const numFailedTests = tests.filter(t => t.result().state === 'failed').length
+    const numPassedTests = tests.filter(t => t.result().state === 'passed').length
+    const numPendingTests = tests.filter(t => t.result().state === 'pending' || t.result().state === 'skipped').length
+    const numTodoTests = tests.filter(t => t.options.mode === 'todo').length
     const testResults: Array<JsonTestResult> = []
 
-    const success = !!(files.length > 0 || this.ctx.config.passWithNoTests) && numFailedTestSuites === 0 && numFailedTests === 0
+    const success = !!(testModules.length > 0 || this.ctx.config.passWithNoTests) && numFailedTestSuites === 0 && numFailedTests === 0
 
-    for (const file of files) {
-      const tests = getTests([file])
+    for (const testModule of testModules) {
+      const tests = Array.from(testModule.children.allTests())
+
       let startTime = tests.reduce(
         (prev, next) =>
-          Math.min(prev, next.result?.startTime ?? Number.POSITIVE_INFINITY),
+          Math.min(prev, next.diagnostic()?.startTime ?? Number.POSITIVE_INFINITY),
         Number.POSITIVE_INFINITY,
       )
       if (startTime === Number.POSITIVE_INFINITY) {
@@ -127,16 +122,16 @@ export class JsonReporter implements Reporter {
         (prev, next) =>
           Math.max(
             prev,
-            (next.result?.startTime ?? 0) + (next.result?.duration ?? 0),
+            (next.diagnostic()?.startTime ?? 0) + (next.diagnostic()?.duration ?? 0),
           ),
         startTime,
       )
       const assertionResults = tests.map((t) => {
         const ancestorTitles: string[] = []
-        let iter: Suite | undefined = t.suite
+        let iter: TestModule | TestSuite | undefined = t.parent.type === 'suite' ? t.parent : undefined
         while (iter) {
-          ancestorTitles.push(iter.name)
-          iter = iter.suite
+          ancestorTitles.push(iter.task.name)
+          iter = iter.parent.type === 'suite' ? iter.parent : undefined
         }
         ancestorTitles.reverse()
 
@@ -145,17 +140,17 @@ export class JsonReporter implements Reporter {
           fullName: t.name
             ? [...ancestorTitles, t.name].join(' ')
             : ancestorTitles.join(' '),
-          status: StatusMap[t.result?.state || t.mode] || 'skipped',
+          status: t.result().state,
           title: t.name,
-          duration: t.result?.duration,
+          duration: t.diagnostic()?.duration,
           failureMessages:
-            t.result?.errors?.map(e => e.stack || e.message) || [],
+            t.result()?.errors?.map(e => e.stack || e.message) || [],
           location: t.location,
-          meta: t.meta,
+          meta: t.meta(),
         } satisfies JsonAssertionResult
       })
 
-      if (tests.some(t => t.result?.state === 'run' || t.result?.state === 'queued')) {
+      if (tests.some(t => t.result().state === 'pending')) {
         this.ctx.logger.warn(
           'WARNING: Some tests are still running when generating the JSON report.'
           + 'This is likely an internal bug in Vitest.'
@@ -163,16 +158,15 @@ export class JsonReporter implements Reporter {
         )
       }
 
-      const hasFailedTests = tests.some(t => t.result?.state === 'fail')
+      const hasFailedTests = tests.some(t => t.result().state === 'failed')
 
       testResults.push({
         assertionResults,
         startTime,
         endTime,
-        status:
-          file.result?.state === 'fail' || hasFailedTests ? 'failed' : 'passed',
-        message: file.result?.errors?.[0]?.message ?? '',
-        name: file.filepath,
+        status: testModule.state() === 'failed' || hasFailedTests ? 'failed' : 'passed',
+        message: testModule.errors()[0]?.message ?? '',
+        name: testModule.moduleId,
       })
     }
 
@@ -190,14 +184,10 @@ export class JsonReporter implements Reporter {
       startTime: this.start,
       success,
       testResults,
-      coverageMap,
+      coverageMap: this.coverageMap,
     }
 
     await this.writeReport(JSON.stringify(result))
-  }
-
-  async onFinished(files: File[] = this.ctx.state.getFiles(), _errors: unknown[] = [], coverageMap?: unknown): Promise<void> {
-    await this.logTasks(files, coverageMap as CoverageMap)
   }
 
   /**

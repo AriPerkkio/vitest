@@ -1,6 +1,7 @@
-import type { File, Task } from '@vitest/runner'
+import type { Task } from '@vitest/runner'
 import type { Vitest } from '../core'
 import type { Reporter } from '../types/reporter'
+import type { TestModule } from './reported-tasks'
 import { existsSync, promises as fs } from 'node:fs'
 
 import { hostname } from 'node:os'
@@ -284,8 +285,10 @@ export class JUnitReporter implements Reporter {
     }
   }
 
-  async onFinished(files: File[] = this.ctx.state.getFiles()): Promise<void> {
+  async onTestRunEnd(testModules: ReadonlyArray<TestModule>): Promise<void> {
     await this.logger.log('<?xml version="1.0" encoding="UTF-8" ?>')
+
+    const files = testModules.map(testModule => testModule.task.file)
 
     const transformed = files.map((file) => {
       const tasks = file.tasks.flatMap(task => flattenTasks(task))

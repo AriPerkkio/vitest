@@ -2,6 +2,7 @@ import type { Task } from '@vitest/runner'
 import type { SnapshotSummary } from '@vitest/snapshot'
 import type { Formatter } from 'tinyrainbow'
 import type { TestProject } from '../../project'
+import type { TestCase, TestEntity, TestModule } from '../reported-tasks'
 import { stripVTControlCharacters } from 'node:util'
 import { slash } from '@vitest/utils'
 import { basename, dirname, isAbsolute, relative } from 'pathe'
@@ -135,33 +136,58 @@ export function renderSnapshotSummary(
   return summary
 }
 
-export function countTestErrors(tasks: Task[]): number {
-  return tasks.reduce((c, i) => c + (i.result?.errors?.length || 0), 0)
+export function countTestErrors(entities: TestEntity[]): number {
+  return entities.reduce((c, i) => {
+    if (i.type === 'test') {
+      return c + (i.result().errors?.length || 0)
+    }
+
+    return c + i.errors().length
+  }, 0)
 }
 
 export function getStateString(
-  tasks: Task[],
+  entities: (TestCase | TestModule)[],
   name = 'tests',
   showTotal = true,
 ): string {
-  if (tasks.length === 0) {
+  if (entities.length === 0) {
     return c.dim(`no ${name}`)
   }
 
-  const passed = tasks.filter(i => i.result?.state === 'pass')
-  const failed = tasks.filter(i => i.result?.state === 'fail')
-  const skipped = tasks.filter(i => i.mode === 'skip')
-  const todo = tasks.filter(i => i.mode === 'todo')
+  let passed = 0
+  let failed = 0
+  let skipped = 0
+  let todo = 0
+
+  for (const entity of entities) {
+    const isTest = entity.type === 'test'
+    const state = isTest ? entity.result().state : entity.state()
+
+    if (state === 'passed') {
+      passed++
+    }
+    else if (state === 'failed') {
+      failed++
+    }
+    // test.skip and test.todo end up with same state - check todo ones first
+    else if (isTest && entity.options.mode === 'todo' && state === 'skipped') {
+      todo++
+    }
+    else if (state === 'skipped') {
+      skipped++
+    }
+  }
 
   return (
     [
-      failed.length ? c.bold(c.red(`${failed.length} failed`)) : null,
-      passed.length ? c.bold(c.green(`${passed.length} passed`)) : null,
-      skipped.length ? c.yellow(`${skipped.length} skipped`) : null,
-      todo.length ? c.gray(`${todo.length} todo`) : null,
+      failed > 0 ? c.bold(c.red(`${failed} failed`)) : null,
+      passed > 0 ? c.bold(c.green(`${passed} passed`)) : null,
+      skipped > 0 ? c.yellow(`${skipped} skipped`) : null,
+      todo > 0 ? c.gray(`${todo} todo`) : null,
     ]
       .filter(Boolean)
-      .join(c.dim(' | ')) + (showTotal ? c.gray(` (${tasks.length})`) : '')
+      .join(c.dim(' | ')) + (showTotal ? c.gray(` (${entities.length})`) : '')
   )
 }
 

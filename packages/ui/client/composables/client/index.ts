@@ -40,7 +40,7 @@ export const client = (function createVitestClient() {
           explorerTree.resumeRun(packs, events)
           testRunState.value = 'running'
         },
-        onFinished(_files, errors) {
+        onTestRunEnd(_testModules, errors) {
           explorerTree.endRun()
           // don't change the testRunState.value here:
           // - when saving the file in the codemirror requires explorer tree endRun to finish (multiple microtasks)

@@ -1,11 +1,11 @@
 import type { File, TaskEventPack, TaskResultPack, TestAnnotation } from '@vitest/runner'
-
+import type { SerializedError } from '@vitest/utils'
 import type { IncomingMessage } from 'node:http'
 import type { ViteDevServer } from 'vite'
 import type { WebSocket } from 'ws'
 import type { Vitest } from '../node/core'
-import type { TestCase } from '../node/reporters/reported-tasks'
-import type { Reporter } from '../node/types/reporter'
+import type { TestCase, TestModule } from '../node/reporters/reported-tasks'
+import type { Reporter, TestRunEndReason } from '../node/types/reporter'
 import type { SerializedTestSpecification } from '../runtime/types/utils'
 import type { Awaitable, LabelColor, ModuleGraphData, UserConsoleLog } from '../types/general'
 import type {
@@ -135,7 +135,7 @@ export function setup(ctx: Vitest, _server?: ViteDevServer): void {
         on: fn => ws.on('message', fn),
         eventNames: [
           'onUserConsoleLog',
-          'onFinished',
+          'onTestRunEnd',
           'onFinishedReportCoverage',
           'onCollected',
           'onTaskUpdate',
@@ -222,9 +222,9 @@ export class WebSocketReporter implements Reporter {
     })
   }
 
-  onFinished(files: File[], errors: unknown[]): void {
+  onTestRunEnd(testModules: ReadonlyArray<TestModule>, unhandledErrors: ReadonlyArray<SerializedError>, reason: TestRunEndReason): void {
     this.clients.forEach((client) => {
-      client.onFinished?.(files, errors)?.catch?.(noop)
+      client.onTestRunEnd?.(testModules, unhandledErrors, reason)?.catch?.(noop)
     })
   }
 

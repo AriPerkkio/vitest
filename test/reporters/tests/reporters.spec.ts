@@ -1,14 +1,19 @@
+import type { Vitest } from 'vitest/node'
 import { existsSync, readFileSync, rmSync } from 'node:fs'
 import { normalize, resolve } from 'pathe'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { JsonReporter } from '../../../packages/vitest/src/node/reporters/json'
 import { JUnitReporter } from '../../../packages/vitest/src/node/reporters/junit'
+import { TestModule } from '../../../packages/vitest/src/node/reporters/reported-tasks'
 import { TapReporter } from '../../../packages/vitest/src/node/reporters/tap'
 import { TapFlatReporter } from '../../../packages/vitest/src/node/reporters/tap-flat'
 import { getContext } from '../src/context'
 import { files, passedFiles } from '../src/data'
 
 const beautify = (json: string) => JSON.parse(json)
+function getTestModules(vitest: Vitest, _files = files) {
+  return _files.map(task => TestModule.register(task, vitest.getRootProject())).filter(m => m.type === 'module')
+}
 
 vi.mock('os', () => ({
   hostname: () => 'hostname',
@@ -21,14 +26,15 @@ beforeEach(() => {
   }
 })
 
-test('tap reporter', async () => {
+test.only('tap reporter', async () => {
   // Arrange
   const reporter = new TapReporter()
   const context = getContext()
+  const testModules = getTestModules(context.vitest)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -38,10 +44,11 @@ test('tap-flat reporter', async () => {
   // Arrange
   const reporter = new TapFlatReporter()
   const context = getContext()
+  const testModules = getTestModules(context.vitest)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -51,10 +58,11 @@ test('JUnit reporter', async () => {
   // Arrange
   const reporter = new JUnitReporter({})
   const context = getContext()
+  const testModules = getTestModules(context.vitest)
 
   // Act
   await reporter.onInit(context.vitest)
-  await reporter.onFinished([])
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -64,11 +72,12 @@ test('JUnit reporter without classname', async () => {
   // Arrange
   const reporter = new JUnitReporter({})
   const context = getContext()
+  const testModules = getTestModules(context.vitest, passedFiles)
 
   // Act
   await reporter.onInit(context.vitest)
 
-  await reporter.onFinished(passedFiles)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -78,11 +87,12 @@ test('JUnit reporter with custom string classname', async () => {
   // Arrange
   const reporter = new JUnitReporter({ classnameTemplate: 'my-custom-classname' })
   const context = getContext()
+  const testModules = getTestModules(context.vitest, passedFiles)
 
   // Act
   await reporter.onInit(context.vitest)
 
-  await reporter.onFinished(passedFiles)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -92,11 +102,12 @@ test('JUnit reporter with custom function classnameTemplate', async () => {
   // Arrange
   const reporter = new JUnitReporter({ classnameTemplate: task => `filename:${task.filename} - filepath:${task.filepath}` })
   const context = getContext()
+  const testModules = getTestModules(context.vitest, passedFiles)
 
   // Act
   await reporter.onInit(context.vitest)
 
-  await reporter.onFinished(passedFiles)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -105,11 +116,12 @@ test('JUnit reporter with custom string classnameTemplate', async () => {
   // Arrange
   const reporter = new JUnitReporter({ classnameTemplate: `filename:{filename} - filepath:{filepath}` })
   const context = getContext()
+  const testModules = getTestModules(context.vitest, passedFiles)
 
   // Act
   await reporter.onInit(context.vitest)
 
-  await reporter.onFinished(passedFiles)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -123,7 +135,7 @@ test('JUnit reporter (no outputFile entry)', async () => {
 
   // Act
   await reporter.onInit(context.vitest)
-  await reporter.onFinished([])
+  await reporter.onTestRunEnd([])
 
   // Assert
   expect(context.output).toMatchSnapshot()
@@ -138,7 +150,7 @@ test('JUnit reporter with outputFile', async () => {
 
   // Act
   await reporter.onInit(context.vitest)
-  await reporter.onFinished([])
+  await reporter.onTestRunEnd([])
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()
@@ -160,7 +172,7 @@ test('JUnit reporter with outputFile object', async () => {
 
   // Act
   await reporter.onInit(context.vitest)
-  await reporter.onFinished([])
+  await reporter.onTestRunEnd([])
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()
@@ -181,7 +193,7 @@ test('JUnit reporter with outputFile in non-existing directory', async () => {
 
   // Act
   await reporter.onInit(context.vitest)
-  await reporter.onFinished([])
+  await reporter.onTestRunEnd([])
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()
@@ -204,7 +216,7 @@ test('JUnit reporter with outputFile object in non-existing directory', async ()
 
   // Act
   await reporter.onInit(context.vitest)
-  await reporter.onFinished([])
+  await reporter.onTestRunEnd([])
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()
@@ -219,12 +231,13 @@ test('json reporter', async () => {
   // Arrange
   const reporter = new JsonReporter({})
   const context = getContext()
+  const testModules = getTestModules(context.vitest)
 
   vi.setSystemTime(1642587001759)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(JSON.parse(context.output)).toMatchSnapshot()
@@ -235,12 +248,13 @@ test('json reporter (no outputFile entry)', async () => {
   const reporter = new JsonReporter({})
   const context = getContext()
   context.vitest.config.outputFile = {}
+  const testModules = getTestModules(context.vitest)
 
   vi.setSystemTime(1642587001759)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(JSON.parse(context.output)).toMatchSnapshot()
@@ -252,12 +266,13 @@ test('json reporter with outputFile', async () => {
   const outputFile = resolve('report.json')
   const context = getContext()
   context.vitest.config.outputFile = outputFile
+  const testModules = getTestModules(context.vitest)
 
   vi.setSystemTime(1642587001759)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()
@@ -276,12 +291,13 @@ test('json reporter with outputFile object', async () => {
   context.vitest.config.outputFile = {
     json: outputFile,
   }
+  const testModules = getTestModules(context.vitest)
 
   vi.setSystemTime(1642587001759)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()
@@ -299,12 +315,13 @@ test('json reporter with outputFile in non-existing directory', async () => {
   const outputFile = `${rootDirectory}/deeply/nested/report.json`
   const context = getContext()
   context.vitest.config.outputFile = outputFile
+  const testModules = getTestModules(context.vitest)
 
   vi.setSystemTime(1642587001759)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()
@@ -324,12 +341,13 @@ test('json reporter with outputFile object in non-existing directory', async () 
   context.vitest.config.outputFile = {
     json: outputFile,
   }
+  const testModules = getTestModules(context.vitest)
 
   vi.setSystemTime(1642587001759)
 
   // Act
   reporter.onInit(context.vitest)
-  await reporter.onFinished(files)
+  await reporter.onTestRunEnd(testModules)
 
   // Assert
   expect(normalizeCwd(context.output)).toMatchSnapshot()

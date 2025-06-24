@@ -76,8 +76,8 @@ export function createClient(url: string, options: VitestClientOptions = {}): Vi
       ctx.state.updateUserLog(log)
       handlers.onUserConsoleLog?.(log)
     },
-    onFinished(files, errors) {
-      handlers.onFinished?.(files, errors)
+    onTestRunEnd(testModules, unhandledErrors, reason) {
+      handlers.onTestRunEnd?.(testModules, unhandledErrors, reason)
     },
     onFinishedReportCoverage() {
       handlers.onFinishedReportCoverage?.()

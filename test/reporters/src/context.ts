@@ -27,6 +27,10 @@ export function getContext(): Context {
 
   const state: Partial<StateManager> = {
     filesMap: new Map<string, RunnerTestFile[]>(),
+    reportedTasksMap: new WeakMap(),
+    getReportedEntity(task) {
+      return state!.reportedTasksMap!.get(task)
+    },
   }
 
   const context: Partial<Vitest> = {
@@ -35,6 +39,7 @@ export function getContext(): Context {
     server: server as ViteDevServer,
     getProjectByTaskId: () => ({ getBrowserSourceMapModuleById: () => undefined }) as any,
     getProjectByName: () => ({ getBrowserSourceMapModuleById: () => undefined }) as any,
+    getRootProject: () => getContext() as any,
     snapshot: {
       summary: { added: 100, _test: true },
     } as any,

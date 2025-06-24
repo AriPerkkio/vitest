@@ -1,4 +1,5 @@
 import type { Task } from '@vitest/runner'
+import type { SerializedError } from '@vitest/utils'
 import type { Writable } from 'node:stream'
 import type { TypeCheckError } from '../typecheck/typechecker'
 import type { Vitest } from './core'
@@ -256,7 +257,7 @@ export class Logger {
     )
   }
 
-  printUnhandledErrors(errors: unknown[]): void {
+  printUnhandledErrors(errors: ReadonlyArray<SerializedError>): void {
     const errorMessage = c.red(
       c.bold(
         `\nVitest caught ${errors.length} unhandled error${

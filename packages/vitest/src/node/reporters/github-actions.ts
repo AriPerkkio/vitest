@@ -1,10 +1,11 @@
 import type { File, TestAnnotation } from '@vitest/runner'
+import type { SerializedError } from '@vitest/utils'
 import type { Vitest } from '../core'
 import type { TestProject } from '../project'
 import type { Reporter } from '../types/reporter'
-import type { TestCase } from './reported-tasks'
+import type { TestCase, TestModule } from './reported-tasks'
 import { stripVTControlCharacters } from 'node:util'
-import { getFullName, getTasks } from '@vitest/runner/utils'
+import { getFullName } from '@vitest/runner/utils'
 import { capturePrintError } from '../printError'
 
 export interface GithubActionsReporterOptions {
@@ -42,7 +43,10 @@ export class GithubActionsReporter implements Reporter {
     this.ctx.logger.log(`\n${formatted}`)
   }
 
-  onFinished(files: File[] = [], errors: unknown[] = []): void {
+  onTestRunEnd(
+    testModules: ReadonlyArray<TestModule>,
+    unhandledErrors: ReadonlyArray<SerializedError>,
+  ): void {
     // collect all errors and associate them with projects
     const projectErrors = new Array<{
       project: TestProject
@@ -50,28 +54,32 @@ export class GithubActionsReporter implements Reporter {
       error: unknown
       file?: File
     }>()
-    for (const error of errors) {
+    for (const error of unhandledErrors) {
       projectErrors.push({
         project: this.ctx.getRootProject(),
         title: 'Unhandled error',
         error,
       })
     }
-    for (const file of files) {
-      const tasks = getTasks(file)
-      const project = this.ctx.getProjectByName(file.projectName || '')
-      for (const task of tasks) {
-        if (task.result?.state !== 'fail') {
+
+    for (const testModule of testModules) {
+      for (const entity of [testModule, ...testModule.children]) {
+        const isTest = entity.type === 'test'
+        const state = isTest ? entity.result().state : entity.state()
+
+        if (state !== 'failed') {
           continue
         }
 
-        const title = getFullName(task, ' > ')
-        for (const error of task.result?.errors ?? []) {
+        const title = getFullName(entity.task, ' > ')
+        const errors = isTest ? entity.result().errors : entity.errors()
+
+        for (const error of (errors ?? [])) {
           projectErrors.push({
-            project,
+            project: testModule.project,
             title,
             error,
-            file,
+            file: entity.task.file,
           })
         }
       }
