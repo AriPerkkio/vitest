@@ -301,7 +301,7 @@ export interface InlineConfig {
   poolOptions?: PoolOptions
 
   /**
-   * Maximum number or percentage of workers to run tests in. `poolOptions.{threads,vmThreads}.maxThreads`/`poolOptions.forks.maxForks` has higher priority.
+   * Maximum number or percentage of workers to run tests in.
    */
   maxWorkers?: number | string
 
@@ -650,7 +650,7 @@ export interface InlineConfig {
    * Debug tests by opening `node:inspector` in worker / child process.
    * Provides similar experience as `--inspect` Node CLI argument.
    *
-   * Requires `poolOptions.threads.singleThread: true` OR `poolOptions.forks.singleFork: true`.
+   * Requires `fileParallelism: false`.
    */
   inspect?: boolean | string
 
@@ -658,7 +658,7 @@ export interface InlineConfig {
    * Debug tests by opening `node:inspector` in worker / child process and wait for debugger to connect.
    * Provides similar experience as `--inspect-brk` Node CLI argument.
    *
-   * Requires `poolOptions.threads.singleThread: true` OR `poolOptions.forks.singleFork: true`.
+   * Requires `fileParallelism: false`.
    */
   inspectBrk?: boolean | string
 
@@ -1077,13 +1077,13 @@ export type ProjectConfig = Omit<
   mode?: string
   sequencer?: Omit<SequenceOptions, 'sequencer' | 'seed'>
   deps?: Omit<DepsOptions, 'moduleDirectories'>
+  fileParallelism?: boolean
   poolOptions?: {
     threads?: Pick<
       NonNullable<PoolOptions['threads']>,
-      'singleThread' | 'isolate'
+      'isolate'
     >
-    vmThreads?: Pick<NonNullable<PoolOptions['vmThreads']>, 'singleThread'>
-    forks?: Pick<NonNullable<PoolOptions['forks']>, 'singleFork' | 'isolate'>
+    forks?: Pick<NonNullable<PoolOptions['forks']>, 'isolate'>
   }
 }
 

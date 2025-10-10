@@ -49,46 +49,13 @@ export interface ResolvedPoolOptions extends PoolOptions {
   vmForks?: ResolvedForksOptions & VmOptions
 }
 
-export interface ThreadsOptions {
-  /** Maximum amount of threads to use */
-  maxThreads?: number | string
+export interface ThreadsOptions {}
 
-  /**
-   * Run tests inside a single thread.
-   *
-   * @default false
-   */
-  singleThread?: boolean
+export interface ResolvedThreadsOptions extends ThreadsOptions {}
 
-  /**
-   * Use Atomics to synchronize threads
-   *
-   * This can improve performance in some cases, but might cause segfault in older Node versions.
-   *
-   * @default false
-   */
-  useAtomics?: boolean
-}
+export interface ForksOptions {}
 
-export interface ResolvedThreadsOptions extends ThreadsOptions {
-  maxThreads?: number
-}
-
-export interface ForksOptions {
-  /** Maximum amount of child processes to use */
-  maxForks?: number | string
-
-  /**
-   * Run tests inside a single fork.
-   *
-   * @default false
-   */
-  singleFork?: boolean
-}
-
-export interface ResolvedForksOptions extends ForksOptions {
-  maxForks?: number
-}
+export interface ResolvedForksOptions extends ForksOptions {}
 
 export interface WorkerContextOptions {
   /**

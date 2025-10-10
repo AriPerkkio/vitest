@@ -59,30 +59,12 @@ const poolThreadsCommands: CLIOptions<ThreadsOptions & WorkerContextOptions> = {
   isolate: {
     description: 'Isolate tests in threads pool (default: `true`)',
   },
-  singleThread: {
-    description: 'Run tests inside a single thread (default: `false`)',
-  },
-  maxThreads: {
-    description: 'Maximum number or percentage of threads to run tests in',
-    argument: '<workers>',
-  },
-  useAtomics: {
-    description:
-      'Use Atomics to synchronize threads. This can improve performance in some cases, but might cause segfault in older Node versions (default: `false`)',
-  },
   execArgv: null,
 }
 
 const poolForksCommands: CLIOptions<ForksOptions & WorkerContextOptions> = {
   isolate: {
     description: 'Isolate tests in forks pool (default: `true`)',
-  },
-  singleFork: {
-    description: 'Run tests inside a single child_process (default: `false`)',
-  },
-  maxForks: {
-    description: 'Maximum number or percentage of processes to run tests in',
-    argument: '<workers>',
   },
   execArgv: null,
 }

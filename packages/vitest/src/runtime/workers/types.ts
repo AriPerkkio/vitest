@@ -3,7 +3,7 @@ import type { BirpcOptions } from 'birpc'
 import type { RuntimeRPC } from '../../types/rpc'
 import type { ContextRPC, WorkerGlobalState } from '../../types/worker'
 
-export type WorkerRpcOptions = Pick<
+type WorkerRpcOptions = Pick<
   BirpcOptions<RuntimeRPC>,
   'on' | 'post' | 'serialize' | 'deserialize'
 >

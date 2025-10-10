@@ -25,7 +25,7 @@ export function getWorkerMemoryLimit(config: ResolvedConfig, pool: 'vmThreads' |
     if (opts.memoryLimit) {
       return opts.memoryLimit
     }
-    const workers = opts.maxForks ?? getDefaultThreadsCount(config)
+    const workers = config.maxWorkers ?? getDefaultThreadsCount(config)
 
     return 1 / workers
   }
@@ -34,7 +34,7 @@ export function getWorkerMemoryLimit(config: ResolvedConfig, pool: 'vmThreads' |
     if (opts.memoryLimit) {
       return opts.memoryLimit
     }
-    const workers = opts.maxThreads ?? getDefaultThreadsCount(config)
+    const workers = config.maxWorkers ?? getDefaultThreadsCount(config)
 
     return 1 / workers
   }

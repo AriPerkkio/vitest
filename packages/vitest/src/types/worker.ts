@@ -16,14 +16,13 @@ export type TestExecutionMethod = 'run' | 'collect'
 
 export interface ContextRPC {
   pool: string
-  worker: string
-  workerId: number
   config: SerializedConfig
   projectName: string
-  files: string[] | FileSpecification[]
+  files: FileSpecification[]
   environment: ContextTestEnvironment
   providedContext: Record<string, any>
   invalidates?: string[]
+  workerId: number
 }
 
 export interface WorkerGlobalState {

@@ -8,6 +8,9 @@ export default defineConfig({
     // Switch between forks|threads
     pool: 'forks',
 
+    // Generate a single profile
+    fileParallelism: false,
+
     poolOptions: {
       threads: {
         execArgv: [
@@ -19,9 +22,6 @@ export default defineConfig({
           '--heap-prof',
           '--heap-prof-dir=threads-profile',
         ],
-
-        // Generate a single profile
-        singleThread: true,
       },
 
       forks: {
@@ -34,9 +34,6 @@ export default defineConfig({
           '--heap-prof',
           '--heap-prof-dir=forks-profile',
         ],
-
-        // Generate a single profile
-        singleFork: true,
       },
     },
   },

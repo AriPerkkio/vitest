@@ -4,9 +4,9 @@ import { expect, test } from 'vitest'
 import { runVitest } from '../../test-utils'
 
 const configs: TestUserConfig[] = [
-  { pool: 'threads', poolOptions: { threads: { isolate: false, singleThread: true } } },
-  { pool: 'threads', poolOptions: { threads: { isolate: false, singleThread: false } } },
-  { pool: 'threads', poolOptions: { threads: { isolate: false, maxThreads: 1 } } },
+  { pool: 'threads', isolate: false, fileParallelism: false },
+  { pool: 'threads', isolate: false },
+  { pool: 'threads', maxWorkers: 1, poolOptions: { threads: { isolate: false } } },
   { pool: 'forks', poolOptions: { forks: { isolate: true } } },
   { pool: 'forks', poolOptions: { forks: { isolate: false } } },
 ]

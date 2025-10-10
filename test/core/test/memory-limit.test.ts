@@ -4,13 +4,12 @@ import { getWorkerMemoryLimit } from 'vitest/src/utils/memory-limit.js'
 
 function makeConfig(poolOptions: PoolOptions): ResolvedConfig {
   return {
+    maxWorkers: poolOptions.maxWorkers,
     poolOptions: {
       vmForks: {
-        maxForks: poolOptions.maxForks,
         memoryLimit: poolOptions.memoryLimit,
       },
       vmThreads: {
-        maxThreads: poolOptions.maxThreads,
         memoryLimit: poolOptions.memoryLimit,
       },
     },
@@ -34,13 +33,13 @@ describe('getWorkerMemoryLimit', () => {
     expect(getWorkerMemoryLimit(config, 'vmForks')).toBe('512MB')
   })
 
-  it('should calculate 1/maxThreads when vmThreads.memoryLimit is unset', () => {
-    const config = makeConfig({ maxThreads: 4 })
+  it('should calculate 1/maxWorkers when vmThreads.memoryLimit is unset', () => {
+    const config = makeConfig({ maxWorkers: 4 })
     expect(getWorkerMemoryLimit(config, 'vmThreads')).toBe(1 / 4)
   })
 
-  it('should calculate 1/maxForks when vmForks.memoryLimit is unset', () => {
-    const config = makeConfig({ maxForks: 4 })
+  it('should calculate 1/maxWorkers when vmForks.memoryLimit is unset', () => {
+    const config = makeConfig({ maxWorkers: 4 })
     expect(getWorkerMemoryLimit(config, 'vmForks')).toBe(1 / 4)
   })
 })

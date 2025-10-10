@@ -160,13 +160,10 @@ it('exports snapshot', async ({ skip, task }) => {
         },
         "./workers": {
           "collectVitestWorkerTests": "function",
-          "createForksRpcOptions": "function",
-          "createThreadsRpcOptions": "function",
           "provideWorkerState": "function",
           "runBaseTests": "function",
           "runVitestWorker": "function",
           "runVmTests": "function",
-          "unwrapSerializableConfig": "function",
         },
       }
     `)
@@ -320,13 +317,10 @@ it('exports snapshot', async ({ skip, task }) => {
           },
           "./workers": {
             "collectVitestWorkerTests": "function",
-            "createForksRpcOptions": "function",
-            "createThreadsRpcOptions": "function",
             "provideWorkerState": "function",
             "runBaseTests": "function",
             "runVitestWorker": "function",
             "runVmTests": "function",
-            "unwrapSerializableConfig": "function",
           },
         }
       `)

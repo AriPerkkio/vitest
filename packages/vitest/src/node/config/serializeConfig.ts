@@ -65,10 +65,6 @@ export function serializeConfig(project: TestProject): SerializedConfig {
     fakeTimers: config.fakeTimers,
     poolOptions: {
       forks: {
-        singleFork:
-          poolOptions?.forks?.singleFork
-          ?? globalConfig.poolOptions?.forks?.singleFork
-          ?? false,
         isolate:
           poolOptions?.forks?.isolate
           ?? isolate
@@ -76,28 +72,14 @@ export function serializeConfig(project: TestProject): SerializedConfig {
           ?? true,
       },
       threads: {
-        singleThread:
-          poolOptions?.threads?.singleThread
-          ?? globalConfig.poolOptions?.threads?.singleThread
-          ?? false,
         isolate:
           poolOptions?.threads?.isolate
           ?? isolate
           ?? globalConfig.poolOptions?.threads?.isolate
           ?? true,
       },
-      vmThreads: {
-        singleThread:
-          poolOptions?.vmThreads?.singleThread
-          ?? globalConfig.poolOptions?.vmThreads?.singleThread
-          ?? false,
-      },
-      vmForks: {
-        singleFork:
-          poolOptions?.vmForks?.singleFork
-          ?? globalConfig.poolOptions?.vmForks?.singleFork
-          ?? false,
-      },
+      vmThreads: { },
+      vmForks: { },
     },
     deps: {
       web: config.deps.web || {},

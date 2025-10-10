@@ -8,7 +8,7 @@ const configs: TestUserConfig[] = []
 const pools: TestUserConfig[] = [
   { pool: 'threads' },
   { pool: 'forks' },
-  { pool: 'threads', poolOptions: { threads: { singleThread: true } } },
+  { pool: 'threads', fileParallelism: false },
 ]
 
 if (process.platform !== 'win32') {
@@ -65,7 +65,7 @@ for (const config of configs) {
     },
     async () => {
       const isParallel
-        = (config.pool === 'threads' && config.poolOptions?.threads?.singleThread !== true)
+        = (config.pool === 'threads' && config.fileParallelism !== true)
           || (config.pool === 'forks' && config.poolOptions?.forks?.singleFork !== true)
           || (config.browser?.enabled && config.browser.fileParallelism)
 

@@ -49,21 +49,16 @@ export interface SerializedConfig {
     hooks: SequenceHooks
     setupFiles: SequenceSetupFiles
   }
+  fileParallelism: boolean
   poolOptions: {
     forks: {
-      singleFork: boolean
       isolate: boolean
     }
     threads: {
-      singleThread: boolean
       isolate: boolean
     }
-    vmThreads: {
-      singleThread: boolean
-    }
-    vmForks: {
-      singleFork: boolean
-    }
+    vmThreads: { }
+    vmForks: { }
   }
   deps: {
     web: {

@@ -66,7 +66,7 @@ export default defineConfig({
             './space-pools/single-worker.test.ts',
           ],
           pool: 'threads',
-          poolOptions: { threads: { singleThread: true } },
+          fileParallelism: false,
         },
       },
       {

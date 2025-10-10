@@ -179,11 +179,11 @@ To reduce the load from main thread's Vite server you can use test sharding. The
 ```sh
 # Example for splitting tests on 32 CPU to 4 shards.
 # As each process needs 1 main thread, there's 7 threads for test runners (1+7)*4 = 32
-# Use VITEST_MAX_THREADS or VITEST_MAX_FORKS depending on the pool:
-VITEST_MAX_THREADS=7 vitest run --reporter=blob --shard=1/4 & \
-VITEST_MAX_THREADS=7 vitest run --reporter=blob --shard=2/4 & \
-VITEST_MAX_THREADS=7 vitest run --reporter=blob --shard=3/4 & \
-VITEST_MAX_THREADS=7 vitest run --reporter=blob --shard=4/4 & \
+# Use VITEST_MAX_WORKERS:
+VITEST_MAX_WORKERS=7 vitest run --reporter=blob --shard=1/4 & \
+VITEST_MAX_WORKERS=7 vitest run --reporter=blob --shard=2/4 & \
+VITEST_MAX_WORKERS=7 vitest run --reporter=blob --shard=3/4 & \
+VITEST_MAX_WORKERS=7 vitest run --reporter=blob --shard=4/4 & \
 wait # https://man7.org/linux/man-pages/man2/waitpid.2.html
 
 vitest run --merge-reports

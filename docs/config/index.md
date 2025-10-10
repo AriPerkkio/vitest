@@ -694,7 +694,7 @@ Similar as `threads` pool but uses `child_process` instead of `worker_threads` v
 
 Run tests using [VM context](https://nodejs.org/api/vm.html) (inside a sandboxed environment) in a `threads` pool.
 
-This makes tests run faster, but the VM module is unstable when running [ESM code](https://github.com/nodejs/node/issues/37648). Your tests will [leak memory](https://github.com/nodejs/node/issues/33439) - to battle that, consider manually editing [`poolOptions.vmThreads.memoryLimit`](#pooloptions-vmthreads-memorylimit) value.
+This makes tests run faster, but the VM module is unstable when running [ESM code](https://github.com/nodejs/node/issues/37648). Your tests will [leak memory](https://github.com/nodejs/node/issues/33439) - to battle that, consider manually editing [`memoryLimit`](#memorylimit) value.
 
 ::: warning
 Running code in a sandbox has some advantages (faster tests), but also comes with a number of disadvantages.
@@ -743,42 +743,6 @@ export default defineConfig({
 })
 ```
 
-##### poolOptions.threads.maxThreads<NonProjectOption />
-
-- **Type:** `number | string`
-- **Default:** _available CPUs_
-
-Maximum number or percentage of threads. You can also use `VITEST_MAX_THREADS` environment variable.
-
-##### poolOptions.threads.singleThread
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Run all tests with the same environment inside a single worker thread. This will disable built-in module isolation (your source code or [inlined](#server-deps-inline) code will still be reevaluated for each test), but can improve test performance.
-
-:::warning
-Even though this option will force tests to run one after another, this option is different from Jest's `--runInBand`. Vitest uses workers not only for running tests in parallel, but also to provide isolation. By disabling this option, your tests will run sequentially, but in the same global context, so you must provide isolation yourself.
-
-This might cause all sorts of issues, if you are relying on global state (frontend frameworks usually do) or your code relies on environment to be defined separately for each test. But can be a speed boost for your tests (up to 3 times faster), that don't necessarily rely on global state or can easily bypass that.
-:::
-
-##### poolOptions.threads.useAtomics<NonProjectOption />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Use Atomics to synchronize threads.
-
-This can improve performance in some cases, but might cause segfault in older Node versions.
-
-##### poolOptions.threads.isolate
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Isolate environment for each test file.
-
 ##### poolOptions.threads.execArgv<NonProjectOption />
 
 - **Type:** `string[]`
@@ -807,33 +771,6 @@ export default defineConfig({
   }
 })
 ```
-
-##### poolOptions.forks.maxForks<NonProjectOption />
-
-- **Type:** `number | string`
-- **Default:** _available CPUs_
-
-Maximum number or percentage of forks. You can also use `VITEST_MAX_FORKS` environment variable.
-
-##### poolOptions.forks.isolate
-
-- **Type:** `boolean`
-- **Default:** `true`
-
-Isolate environment for each test file.
-
-##### poolOptions.forks.singleFork
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Run all tests with the same environment inside a single child process. This will disable built-in module isolation (your source code or [inlined](#server-deps-inline) code will still be reevaluated for each test), but can improve test performance.
-
-:::warning
-Even though this option will force tests to run one after another, this option is different from Jest's `--runInBand`. Vitest uses child processes not only for running tests in parallel, but also to provide isolation. By disabling this option, your tests will run sequentially, but in the same global context, so you must provide isolation yourself.
-
-This might cause all sorts of issues, if you are relying on global state (frontend frameworks usually do) or your code relies on environment to be defined separately for each test. But can be a speed boost for your tests (up to 3 times faster), that don't necessarily rely on global state or can easily bypass that.
-:::
 
 ##### poolOptions.forks.execArgv<NonProjectOption />
 
@@ -864,17 +801,12 @@ export default defineConfig({
 })
 ```
 
-##### poolOptions.vmThreads.maxThreads<NonProjectOption />
-
-- **Type:** `number | string`
-- **Default:** _available CPUs_
-
-Maximum number or percentage of threads. You can also use `VITEST_MAX_THREADS` environment variable.
-
-##### poolOptions.vmThreads.memoryLimit<NonProjectOption />
+### vmMemoryLimit
 
 - **Type:** `string | number`
 - **Default:** `1 / CPU Cores`
+
+This option affects only `vmForks` and `vmThreads` pools.
 
 Specifies the memory limit for workers before they are recycled. This value heavily depends on your environment, so it's better to specify it manually instead of relying on the default.
 
@@ -899,15 +831,6 @@ The limit can be specified in a number of different ways and whatever the result
 ::: warning
 Percentage based memory limit [does not work on Linux CircleCI](https://github.com/jestjs/jest/issues/11956#issuecomment-1212925677) workers due to incorrect system memory being reported.
 :::
-
-##### poolOptions.vmThreads.useAtomics<NonProjectOption />
-
-- **Type:** `boolean`
-- **Default:** `false`
-
-Use Atomics to synchronize threads.
-
-This can improve performance in some cases, but might cause segfault in older Node versions.
 
 ##### poolOptions.vmThreads.execArgv<NonProjectOption />
 
@@ -937,13 +860,6 @@ export default defineConfig({
   }
 })
 ```
-
-##### poolOptions.vmForks.maxForks<NonProjectOption />
-
-- **Type:** `number | string`
-- **Default:** _available CPUs_
-
-Maximum number or percentage of forks. You can also use `VITEST_MAX_FORKS` environment variable.
 
 ##### poolOptions.vmForks.memoryLimit<NonProjectOption />
 
@@ -979,7 +895,7 @@ This option doesn't affect tests running in the same file. If you want to run th
 
 - **Type:** `number | string`
 
-Maximum number or percentage of workers to run tests in. `poolOptions.{threads,vmThreads}.maxThreads`/`poolOptions.forks.maxForks` has higher priority.
+Maximum number or percentage of workers to run tests in.
 
 ### testTimeout
 

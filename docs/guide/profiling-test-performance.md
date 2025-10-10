@@ -43,6 +43,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     pool: 'forks',
+    fileParallelism: false,
     poolOptions: {
       forks: {
         execArgv: [
@@ -51,9 +52,6 @@ export default defineConfig({
           '--heap-prof',
           '--heap-prof-dir=test-runner-profile'
         ],
-
-        // To generate a single profile
-        singleFork: true,
       },
     },
   },
@@ -65,6 +63,7 @@ import { defineConfig } from 'vitest/config'
 export default defineConfig({
   test: {
     pool: 'threads',
+    fileParallelism: false,
     poolOptions: {
       threads: {
         execArgv: [
@@ -73,9 +72,6 @@ export default defineConfig({
           '--heap-prof',
           '--heap-prof-dir=test-runner-profile'
         ],
-
-        // To generate a single profile
-        singleThread: true,
       },
     },
   },
