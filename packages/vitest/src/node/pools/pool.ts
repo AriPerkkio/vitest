@@ -14,6 +14,7 @@ interface Options {
   distPath: string
   teardownTimeout: number
   state: StateManager
+  defaultMaxWorkers: number
 }
 
 interface QueuedTask {
@@ -36,7 +37,9 @@ export class Pool {
   private exitPromises: Promise<void>[] = []
   private _isCancelling: boolean = false
 
-  constructor(private options: Options, private logger: Logger) {}
+  constructor(private options: Options, private logger: Logger) {
+    this.setMaxWorkers(options.defaultMaxWorkers)
+  }
 
   setMaxWorkers(maxWorkers: number): void {
     this.maxWorkers = maxWorkers
@@ -68,6 +71,15 @@ export class Pool {
     }
 
     const { task, resolver, method } = this.queue.shift()!
+
+    let changedMaxWorkers = false
+    const next = this.queue[0]
+    if (next) {
+      if (next.task.context.config.maxWorkers !== this.maxWorkers) {
+        this.setMaxWorkers(next.task.context.config.maxWorkers)
+        changedMaxWorkers = true
+      }
+    }
 
     try {
       let isMemoryLimitReached = false
@@ -114,6 +126,10 @@ export class Pool {
 
       const poolId = runner.poolId ?? this.getWorkerId()
       runner.poolId = poolId
+
+      if (this.activeTasks.length >= this.maxWorkers) {
+        this.onMaxResourceLimit()
+      }
 
       // Start running the test in the worker
       runner.postMessage({
@@ -194,6 +210,9 @@ export class Pool {
   async close(): Promise<void> {
     await this.cancel()
   }
+
+  /** @internal */
+  onMaxResourceLimit() {}
 
   private getPoolRunner(task: PoolTask, method: 'run' | 'collect'): PoolRunner {
     if (task.isolate === false) {
