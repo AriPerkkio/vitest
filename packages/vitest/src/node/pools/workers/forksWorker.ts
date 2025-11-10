@@ -52,6 +52,7 @@ export class ForksPoolWorker implements PoolWorker {
       env: this.env,
       execArgv: this.execArgv,
       stdio: 'pipe',
+      serialization: 'advanced',
     })
 
     if (this._fork.stdout) {
