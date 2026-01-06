@@ -20,6 +20,14 @@ export default defineConfig({
           name: 'project-shared',
           root: 'fixtures/workspaces/project/shared',
         }
+      },
+
+      {
+        test: {
+          name: 'root-collison',
+          // Root that matches multiple projects if not limited properly
+          root: 'fixtures/workspaces/project/proj',
+        }
       }
     ]
   }
