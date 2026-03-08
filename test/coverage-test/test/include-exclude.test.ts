@@ -108,6 +108,25 @@ test('exclude can exclude covered files #2', async () => {
   `)
 })
 
+test('exclude globs don\'t filter out cwd', async () => {
+  await runVitest({
+    include: ['fixtures/test/math.test.ts', 'fixtures/test/even.test.ts'],
+    coverage: {
+      reporter: 'json',
+      include: ['fixtures/src/{math,even}.ts'],
+      exclude: ['**/vitest/**'],
+    },
+  })
+
+  const coverageMap = await readCoverageMap()
+  expect(coverageMap.files()).toMatchInlineSnapshot(`
+    [
+      "<process-cwd>/fixtures/src/even.ts",
+      "<process-cwd>/fixtures/src/math.ts",
+    ]
+  `)
+})
+
 test('uncovered files are included after watch-mode re-run', async () => {
   // to avoid printing coverage report to stdout
   const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
