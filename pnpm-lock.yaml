@@ -129,9 +129,6 @@ catalogs:
     strip-literal:
       specifier: ^3.1.0
       version: 3.1.0
-    tinyexec:
-      specifier: ^1.0.2
-      version: 1.0.2
     tinyglobby:
       specifier: ^0.2.15
       version: 0.2.15
@@ -1090,8 +1087,8 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
       tinyexec:
-        specifier: ^1.0.2
-        version: 1.0.2
+        specifier: 1.1.2-next.0
+        version: 1.1.2-next.0
       tinyglobby:
         specifier: 'catalog:'
         version: 0.2.15
@@ -1254,8 +1251,8 @@ importers:
         specifier: file:./deps/test-dep-error
         version: file:test/browser/deps/test-dep-error
       tinyexec:
-        specifier: 'catalog:'
-        version: 1.0.2
+        specifier: 1.1.2-next.0
+        version: 1.1.2-next.0
       url:
         specifier: ^0.11.4
         version: 0.11.4
@@ -1308,8 +1305,8 @@ importers:
         specifier: file:./deps/test-dep-conditions
         version: file:test/config/deps/test-dep-conditions
       tinyexec:
-        specifier: ^1.0.2
-        version: 1.0.2
+        specifier: 1.1.2-next.0
+        version: 1.1.2-next.0
       vite:
         specifier: 7.1.5
         version: 7.1.5(@types/node@24.12.0)(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
@@ -1539,8 +1536,8 @@ importers:
   test/test-utils:
     devDependencies:
       tinyexec:
-        specifier: ^1.0.2
-        version: 1.0.2
+        specifier: 1.1.2-next.0
+        version: 1.1.2-next.0
       tinyrainbow:
         specifier: 'catalog:'
         version: 3.1.0
@@ -9880,6 +9877,10 @@ packages:
 
   tinyexec@1.0.2:
     resolution: {integrity: sha512-W/KYk+NFhkmsYpuHq5JykngiOCnxeVL8v8dFnqxSD8qEEdRfXk1SDM6JzNqcERbcGYj9tMrDQBYV9cjgnunFIg==}
+    engines: {node: '>=18'}
+
+  tinyexec@1.1.2-next.0:
+    resolution: {integrity: sha512-eZpHytfkJ/hIX7LzzXo3dxLjuj8ZoHBctzMtX8A/FmvBRvJm8HdS/8/sUCr8V29I48GOvnEoh7U66KIOLP2Ong==}
     engines: {node: '>=18'}
 
   tinyglobby@0.2.15:
@@ -19300,6 +19301,8 @@ snapshots:
   tinyexec@0.3.2: {}
 
   tinyexec@1.0.2: {}
+
+  tinyexec@1.1.2-next.0: {}
 
   tinyglobby@0.2.15:
     dependencies:
