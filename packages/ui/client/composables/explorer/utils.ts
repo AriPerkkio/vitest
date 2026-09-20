@@ -241,6 +241,7 @@ export function createOrUpdateNode(
 
 export function pruneStaleChildren(nodes: Map<string, UITaskTreeNode>, parentNode: ParentTreeNode, tasks: Task[]) {
   const taskById = new Map(tasks.map(task => [task.id, task] as const))
+  // oxlint-disable-next-line unicorn/no-useless-spread -- removal mutates the tasks array
   for (const child of [...parentNode.tasks]) {
     const task = taskById.get(child.id)
     if (!task || task.type !== child.type) {
@@ -254,6 +255,7 @@ export function pruneStaleChildren(nodes: Map<string, UITaskTreeNode>, parentNod
 
 export function removeNodeSubtree(nodes: Map<string, UITaskTreeNode>, node: UITaskTreeNode) {
   if (isParentNode(node)) {
+    // oxlint-disable-next-line unicorn/no-useless-spread -- removal mutates the tasks array
     for (const child of [...node.tasks]) {
       removeNodeSubtree(nodes, child)
     }

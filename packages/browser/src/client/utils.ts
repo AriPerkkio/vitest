@@ -54,6 +54,7 @@ export function ensureAwaited<T>(promise: (error?: Error) => Promise<T>): Promis
   // don't even start the promise if it's not awaited to not cause any unhanded promise rejections
   let promiseResult: Promise<T> | undefined
   return {
+    // oxlint-disable-next-line unicorn/no-thenable -- assertions run when awaited
     then(onFulfilled, onRejected) {
       awaited = true
       return (promiseResult ||= promise(sourceError)).then(onFulfilled, onRejected)

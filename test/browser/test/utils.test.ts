@@ -197,7 +197,7 @@ test('filterNode with wildcard selector filters nested content', async () => {
     "<div>
       <div>
         <div
-          data-test-hide-content=\"\"
+          data-test-hide-content=""
         />
         <span>
           visible

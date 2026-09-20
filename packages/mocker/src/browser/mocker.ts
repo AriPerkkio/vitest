@@ -25,7 +25,7 @@ export class ModuleMocker implements TestModuleMocker {
     if (!this.queue.size) {
       return
     }
-    await Promise.all([...this.queue.values()])
+    await Promise.all(this.queue.values())
   }
 
   public async resolveFactoryModule(id: string): Promise<Record<string | symbol, any>> {

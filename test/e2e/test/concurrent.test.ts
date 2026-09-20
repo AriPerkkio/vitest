@@ -645,7 +645,7 @@ test('neighboring suite aroundAll teardown deadlocks with insufficient maxConcur
       "basic.test.ts": {
         "s1": {
           "__suite_errors__": [
-            "The teardown phase of \"aroundAll\" hook timed out after 500ms.",
+            "The teardown phase of "aroundAll" hook timed out after 500ms.",
           ],
           "a": "passed",
         },
@@ -788,7 +788,7 @@ test('neighboring test aroundEach deadlocks with insufficient maxConcurrency', a
       "basic.test.ts": {
         "wrapper": {
           "a": [
-            "The setup phase of \"aroundEach\" hook timed out after 500ms.",
+            "The setup phase of "aroundEach" hook timed out after 500ms.",
           ],
           "b": "passed",
         },
@@ -863,7 +863,7 @@ test('neighboring test aroundEach teardown deadlocks with insufficient maxConcur
       "basic.test.ts": {
         "wrapper": {
           "a": [
-            "The teardown phase of \"aroundEach\" hook timed out after 500ms.",
+            "The teardown phase of "aroundEach" hook timed out after 500ms.",
           ],
           "b": "passed",
         },

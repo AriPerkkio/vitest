@@ -65,5 +65,3 @@ declare module 'vitest' {
     toReportNoErrors(): R
   }
 }
-
-export {}

@@ -91,13 +91,11 @@ const plugins = [
   oxc({
     transform: {
       target: 'node20',
-      define: {
-        ...(process.env.VITE_TEST_WATCHER_DEBUG === 'false'
-          ? {
-              'process.env.VITE_TEST_WATCHER_DEBUG': 'false',
-            }
-          : {}),
-      },
+      define: process.env.VITE_TEST_WATCHER_DEBUG === 'false'
+        ? {
+            'process.env.VITE_TEST_WATCHER_DEBUG': 'false',
+          }
+        : {},
     },
     sourcemap: true,
   }),
@@ -279,7 +277,7 @@ function sortLicenses(licenses) {
   let withParenthesis = []
   let noParenthesis = []
   licenses.forEach((license) => {
-    if (/^\(/.test(license)) {
+    if (license.startsWith('(')) {
       withParenthesis.push(license)
     }
     else {

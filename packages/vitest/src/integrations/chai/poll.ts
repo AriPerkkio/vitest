@@ -218,6 +218,7 @@ export function createExpectPoll(expect: ExpectStatic): ExpectStatic['poll'] {
           // only .then is enough to check awaited, but we type this as `Promise<void>` in global types
           // so let's follow it
           return {
+            // oxlint-disable-next-line unicorn/no-thenable -- assertions run when awaited
             then(onFulfilled, onRejected) {
               awaited = true
               return start().then(onFulfilled, onRejected)

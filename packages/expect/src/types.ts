@@ -924,5 +924,3 @@ export interface ChaiMockAssertion<R extends void | Promise<void>, T = unknown> 
    */
   readonly calledThrice: Assertion<R, T>
 }
-
-export {}

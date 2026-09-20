@@ -93,6 +93,7 @@ class Action<T = void> implements Promise<T> {
     return this.#promise ??= this.#run()
   }
 
+  // oxlint-disable-next-line unicorn/no-thenable -- assertions run when awaited
   then<R1 = T, R2 = never>(
     onFulfilled?: ((value: T) => R1 | PromiseLike<R1>) | null,
     onRejected?: ((reason: any) => R2 | PromiseLike<R2>) | null,

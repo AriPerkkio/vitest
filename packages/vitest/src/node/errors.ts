@@ -22,7 +22,7 @@ export class LocationFilterFileNotFoundError extends Error {
   code = 'VITEST_LOCATION_FILTER_FILE_NOT_FOUND'
 
   constructor(filename: string) {
-    super(`Couldn\'t find file ${filename}. Note when specifying the test `
+    super(`Couldn't find file ${filename}. Note when specifying the test `
       + 'location you have to specify the full test filename.')
   }
 }

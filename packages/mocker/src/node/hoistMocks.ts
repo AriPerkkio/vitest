@@ -343,13 +343,13 @@ export function hoistMocks(
           const method = `${node.callee.object.name}.${methodName}`
           assertNotDefaultExport(
             node,
-            `Cannot export the result of "${method}". Remove export declaration because "${method}" doesn\'t return anything.`,
+            `Cannot export the result of "${method}". Remove export declaration because "${method}" doesn't return anything.`,
           )
           const declarationNode = getVariableDeclaration(node)
           if (declarationNode) {
             assertNotNamedExport(
               declarationNode,
-              `Cannot export the result of "${method}". Remove export declaration because "${method}" doesn\'t return anything.`,
+              `Cannot export the result of "${method}". Remove export declaration because "${method}" doesn't return anything.`,
             )
           }
           if (options.onStaticMock) {

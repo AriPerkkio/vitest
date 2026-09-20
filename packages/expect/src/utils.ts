@@ -65,6 +65,7 @@ export function recordAsyncExpect(
     })
 
     return {
+      // oxlint-disable-next-line unicorn/no-thenable -- assertions run when awaited
       then(onFulfilled, onRejected) {
         resolved = true
         return promise.then(onFulfilled, onRejected)

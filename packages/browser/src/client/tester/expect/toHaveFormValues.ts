@@ -106,7 +106,7 @@ function getFormValue(container: HTMLFormElement | HTMLFieldSetElement, name: st
 
 // Strips the `[]` suffix off a form value name
 function getPureName(name: string) {
-  return /\[\]$/.test(name) ? name.slice(0, -2) : name
+  return name.endsWith('[]') ? name.slice(0, -2) : name
 }
 
 function getAllFormValues(container: HTMLFormElement | HTMLFieldSetElement) {

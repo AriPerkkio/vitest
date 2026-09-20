@@ -38,7 +38,7 @@ export function collectModuleExports(
 ): string[] {
   if (format === 'module') {
     const [imports_, exports_] = parseModuleSyntax(code, filename)
-    const fileExports = [...exports_.map(p => p.n)]
+    const fileExports = exports_.map(p => p.n)
     imports_.forEach(({ ss: start, se: end, n: name }) => {
       const substring = code.substring(start, end).replace(/ +/g, ' ')
       if (name && substring.startsWith('export *') && !substring.startsWith('export * as')) {

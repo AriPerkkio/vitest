@@ -607,8 +607,8 @@ export function resolveTestConfig(
     ...configFiles,
 
     // Vite internal
-    '**\/virtual:*',
-    '**\/__x00__*',
+    '**/virtual:*',
+    '**/__x00__*',
 
     '**/node_modules/**',
   ].filter(pattern => typeof pattern === 'string')
@@ -820,7 +820,7 @@ export function resolveTestConfig(
   if (resolved.cache !== false) {
     if (resolved.cache && typeof resolved.cache.dir === 'string') {
       logger.deprecate(
-        `"cache.dir" is deprecated, use Vite's "cacheDir" instead if you want to change the cache director. Note caches will be written to "cacheDir\/vitest"`,
+        `"cache.dir" is deprecated, use Vite's "cacheDir" instead if you want to change the cache director. Note caches will be written to "cacheDir/vitest"`,
       )
     }
 

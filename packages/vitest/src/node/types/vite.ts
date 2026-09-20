@@ -26,5 +26,3 @@ declare module 'vite' {
     configureVitest?: HookHandler<(context: VitestPluginContext) => void>
   }
 }
-
-export {}

@@ -570,9 +570,7 @@ describe('jest mock compat layer', () => {
 
   it('mock classes', () => {
     const Dog = vi.fn(class Dog {
-      constructor(public name: string) {
-        this.name = name
-      }
+      constructor(public name: string) {}
 
       static getType: () => string = vi.fn(() => 'mocked animal')
       speak = vi.fn(() => 'loud bark!')

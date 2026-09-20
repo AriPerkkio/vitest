@@ -1092,10 +1092,10 @@ function cloneProjectConfigForBrowserInstance(
     headless,
     screenshotDirectory,
     screenshotFailures,
-    fileParallelism,
+    fileParallelism: _fileParallelism,
     // @ts-expect-error remove just in case
     browser: _browser,
-    name,
+    name: _name,
     provider,
     ...overrideConfig
   } = config
